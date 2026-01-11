@@ -2,37 +2,147 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Week 1 – EEG Data Ingestion Pipeline</title>
+<title>Week 1 – Data Ingestion & Signal Processing Pipeline</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-body {font-family:Segoe UI,Arial,sans-serif;background:#020617;color:#e5e7eb;}
-.container {max-width:1000px;margin:auto;padding:50px 20px;}
-.card {background:#020617;border-radius:14px;padding:25px;margin-bottom:25px;
-box-shadow:0 0 20px rgba(56,189,248,0.15);}
+body {
+    font-family: Segoe UI, Arial, sans-serif;
+    background:#020617;
+    color:#e5e7eb;
+}
+.container {
+    max-width:1100px;
+    margin:auto;
+    padding:50px 25px;
+}
+.card {
+    background:#020617;
+    padding:30px;
+    border-radius:14px;
+    margin-bottom:30px;
+    box-shadow:0 0 25px rgba(56,189,248,0.15);
+}
 h1,h2 {color:#38bdf8;}
-a {color:#22c55e;text-decoration:none;}
-code {background:#020617;color:#38bdf8;padding:4px 6px;border-radius:6px;}
+a {color:#22c55e;text-decoration:none;font-weight:600;}
+code {
+    background:#020617;
+    color:#38bdf8;
+    padding:4px 8px;
+    border-radius:6px;
+}
+.badge {
+    display:inline-block;
+    padding:6px 12px;
+    background:#1e293b;
+    border-radius:20px;
+    margin:4px 6px 0 0;
+    font-size:0.85em;
+    color:#38bdf8;
+}
 </style>
 </head>
 <body>
 <div class="container">
+
 <a href="/eeg/index.html">← Back to Home</a>
+
 <h1>Week 1 – Data Ingestion & Signal Processing Pipeline</h1>
 
 <div class="card">
 <h2>Objective</h2>
-<p>Decode nested MindBigData EEG files and prepare CNN-ready tensors.</p>
+<p>
+The objective of this week was to decode complex physiological EEG datasets and transform them into a clean, structured, and GPU-ready format suitable for deep learning pipelines. This stage laid the foundation for all subsequent CNN-based motor imagery classification experiments.
+</p>
 </div>
 
 <div class="card">
-<h2>Key Work</h2>
+<h2>Dataset Challenge</h2>
+<p>
+The project utilized the <strong>MindBigData Motor Imagery EEG Dataset</strong>. The dataset was stored in MATLAB v7.3 format which internally uses the HDF5 standard. Each file contained deeply nested hierarchical objects that prevented direct NumPy loading.
+</p>
+
+<p>The dataset consisted of six motor imagery classes:</p>
+
+<span class="badge">Left</span>
+<span class="badge">Right</span>
+<span class="badge">Forward</span>
+<span class="badge">Backward</span>
+<span class="badge">Up</span>
+<span class="badge">Down</span>
+
+<p><br>Files followed the naming pattern:</p>
+<code>MoveSep_session*_sub*_reaching_MI.mat</code>
+
+<p>
+Each file contained multiple EEG trials recorded across 60 channels with high-resolution temporal sampling, resulting in several gigabytes of raw data distributed across multiple sessions and subjects.
+</p>
+</div>
+
+<div class="card">
+<h2>Custom Data Parser – <code>dataLoaderNew.py</code></h2>
+<p>
+A fully customized parser was implemented to traverse nested HDF5 groups safely and extract the raw EEG arrays. The parser decodes variable-depth MATLAB structures and converts them into uniform tensors.
+</p>
+
 <ul>
-<li>Parsed MATLAB v7.3 HDF5 EEG files.</li>
-<li>Extracted tensors in <code>(Trials, Time, Channels)</code> format.</li>
-<li>Standardized shape to <code>(N,1,60,2500)</code>.</li>
-<li>Balanced six motor imagery classes.</li>
-<li>Implemented PyTorch Dataset streaming.</li>
+<li>Loaded HDF5 objects using <code>h5py</code>.</li>
+<li>Traversed dynamic object references and groups.</li>
+<li>Extracted EEG signals in the format:</li>
+</ul>
+
+<code>(Trials, Time_Samples, Channels)</code>
+
+<p>
+This structure allowed seamless concatenation of trials across multiple sessions and subjects while preserving channel order and temporal resolution.
+</p>
+</div>
+
+<div class="card">
+<h2>Tensor Standardization for CNN</h2>
+<p>
+To enable convolutional neural networks to operate on EEG signals, the extracted data was standardized into the following tensor shape:
+</p>
+
+<code>(N, 1, 60, 2500)</code>
+
+<ul>
+<li><strong>N</strong> – number of trials.</li>
+<li><strong>1</strong> – artificial depth channel.</li>
+<li><strong>60</strong> – EEG electrode channels.</li>
+<li><strong>2500</strong> – time samples per trial.</li>
+</ul>
+
+<p>
+This representation treats EEG as a 2D image, where spatial relationships between electrodes and temporal dynamics can be jointly learned using 2D convolutional kernels.
+</p>
+</div>
+
+<div class="card">
+<h2>Class Balancing Strategy</h2>
+<p>
+To eliminate dataset bias, trials were aggregated across multiple session and subject files. This ensured that each motor imagery class had equal representation across the dataset.
+</p>
+
+<ul>
+<li>Merged trials across all sessions.</li>
+<li>Trimmed over-represented classes.</li>
+<li>Validated final class distribution.</li>
 </ul>
 </div>
+
+<div class="card">
+<h2>Final Outcome</h2>
+<p>
+A memory-efficient <code>torch.utils.data.Dataset</code> wrapper was developed, enabling real-time batch streaming to GPU memory during training. This abstraction hides all file I/O and preprocessing complexity from the model training stage.
+</p>
+
+<ul>
+<li>GPU-ready batch streaming.</li>
+<li>Low RAM footprint.</li>
+<li>Fully compatible with PyTorch training loops.</li>
+</ul>
+</div>
+
 </div>
 </body>
 </html>
