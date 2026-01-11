@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Week 1 – EEG Data Ingestion Pipeline</title>
+<style>
+body {font-family:Segoe UI,Arial,sans-serif;background:#020617;color:#e5e7eb;}
+.container {max-width:1000px;margin:auto;padding:50px 20px;}
+.card {background:#020617;border-radius:14px;padding:25px;margin-bottom:25px;
+box-shadow:0 0 20px rgba(56,189,248,0.15);}
+h1,h2 {color:#38bdf8;}
+a {color:#22c55e;text-decoration:none;}
+code {background:#020617;color:#38bdf8;padding:4px 6px;border-radius:6px;}
+</style>
+</head>
+<body>
+<div class="container">
+<a href="index.html">← Back to Home</a>
+<h1>Week 1 – Data Ingestion & Signal Processing Pipeline</h1>
+
+<div class="card">
+<h2>Objective</h2>
+<p>Decode nested MindBigData EEG files and prepare CNN-ready tensors.</p>
+</div>
+
+<div class="card">
+<h2>Key Work</h2>
+<ul>
+<li>Parsed MATLAB v7.3 HDF5 EEG files.</li>
+<li>Extracted tensors in <code>(Trials, Time, Channels)</code> format.</li>
+<li>Standardized shape to <code>(N,1,60,2500)</code>.</li>
+<li>Balanced six motor imagery classes.</li>
+<li>Implemented PyTorch Dataset streaming.</li>
+</ul>
+</div>
+</div>
+</body>
+</html>
