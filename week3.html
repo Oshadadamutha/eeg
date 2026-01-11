@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Week 3: Architecture - CNN-EEG Portfolio</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <nav>
+        <a href="/eeg/week1.html">Week 1: Data</a>
+        <a href="/eeg/week2.html">Week 2: Baseline</a>
+        <a href="/eeg/week3.html" class="active">Week 3: Architecture</a>
+        <a href="/eeg/week4.html">Week 4: Challenges</a>
+        <a href="/eeg/week5.html">Week 5: Solution</a>
+    </nav>
+
+    <div class="container">
+        <header>
+            <h1>Week 3: ThinNet</h1>
+            <p>Designing Spatio-Temporal Filters for Brain Signals</p>
+        </header>
+
+        <section>
+            <h2>The Philosophy: Constraints Breed Creativity</h2>
+            <p>To combat the massive overfitting seen in Week 2, I didn't need a <em>bigger</em> model; I needed a <em>smarter</em> one. I researched architectures like EEGNet and DeepConvNet and designed a custom variant called <strong><code>thinNet</code></strong>.</p>
+            <p>The goal was to decouple <strong>Temporal Learning</strong> (frequency patterns over time) from <strong>Spatial Learning</strong> (which part of the brain is active).</p>
+        </section>
+
+        <section>
+            <h2>Architecture Deep Dive: <code>thinNet.py</code></h2>
+            <p>I replaced standard square kernels (e.g., <code>3x3</code>) with rectangular kernels to force the network to learn specific types of features.</p>
+
+            <h3>Layer 1: The Temporal Filter</h3>
+<pre><code># Layer 1: Learn Frequencies (Alpha/Beta waves)
+# Kernel: (1, 11) -> Height 1 (1 channel), Width 11 (time samples)
+# This acts like a Bandpass Filter, ignoring spatial info.
+nn.Conv2d(in_channels=1, out_channels=12, kernel_size=(1, 11), stride=(1, 1))</code></pre>
+            <p>This layer slides <em>only</em> across time, effectively learning to spot specific brainwave frequencies (like the 8-12Hz Mu rhythm associated with motor movement) independently for each electrode.</p>
+
+            <h3>Layer 2: The Spatial Filter</h3>
+<pre><code># Layer 2: Learn Spatial Patterns
+# Kernel: (2, 11) with Stride (2, 1)
+# This combines adjacent electrodes to detect WHERE the signal is coming from.
+nn.Conv2d(in_channels=12, out_channels=24, kernel_size=(2, 11), stride=(2, 1))</code></pre>
+            <p>This layer mixes information from neighboring electrodes. By strictly defining these dimensions, I reduced the trainable parameters by <strong>~70%</strong>.</p>
+        </section>
+
+        <section>
+            <h2>Regularization Strategy</h2>
+            <p>I also introduced aggressive regularization layers directly into the model definition:</p>
+            <ol>
+                <li><strong>Dropout (p=0.5):</strong> Randomly zeroing out 50% of neurons during training to prevent co-adaptation.</li>
+                <li><strong>BatchNorm:</strong> Normalizing layer inputs to stabilize the gradient descent.</li>
+            </ol>
+        </section>
+
+        <section>
+            <h2>Outcome</h2>
+            <p>The <code>thinNet</code> architecture converged faster and the gap between Training and Validation accuracy narrowed significantly. The model was no longer just memorizing noise; it was forcing itself to find structural patterns in the alpha/beta frequency bands.</p>
+        </section>
+        
+        <footer>
+            <p>Project Portfolio: CNN-EEG Motor Imagery Classification</p>
+        </footer>
+    </div>
+
+</body>
+</html>

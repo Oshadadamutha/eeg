@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Week 2: Baseline - CNN-EEG Portfolio</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <nav>
+        <a href="/eeg/week1.html">Week 1: Data</a>
+        <a href="/eeg/week2.html">Week 2: Baseline</a>
+        <a href="/eeg/week3.html">Week 3: Architecture</a>
+        <a href="/eeg/week4.html">Week 4: Challenges</a>
+        <a href="/eeg/week5.html">Week 5: Solution</a>
+    </nav>
+
+    <div class="container">
+        <header>
+            <h1>Week 2: The Baseline Trap</h1>
+            <p>Overfitting on High-Dimensional Noise</p>
+        </header>
+
+        <section>
+            <h2>The Objective</h2>
+            <p>With data flowing into the GPU, the next step was to establish a "Baseline." In software engineering, this is the Minimum Viable Product (MVP). I needed to prove that a neural network could learn <em>anything</em> from this data before optimizing architectures.</p>
+        </section>
+
+        <section>
+            <h2>The Baseline Architecture: <code>convNet</code></h2>
+            <p>I implemented a standard Convolutional Neural Network (CNN) similar to VGG-16 but adapted for the rectangular shape of EEG data.</p>
+            <ul>
+                <li><strong>Input:</strong> <code>1 x 12 x 2500</code></li>
+                <li><strong>Layers:</strong> 6 Convolutional Layers, Max Pooling, ReLU activation.</li>
+                <li><strong>Loss Function:</strong> <code>CrossEntropyLoss</code> (for 6-class classification).</li>
+                <li><strong>Optimizer:</strong> <code>Adam</code> (Adaptive Moment Estimation).</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>The Training Loop (<code>manualGS.py</code>)</h2>
+            <p>I built a reusable training harness. Key to this implementation was the integration of <strong>TensorBoard</strong> to visualize the "black box" of training.</p>
+            
+<pre><code>def trainModel(net, X_train, Y_train, ...):
+    optimizer = Adam(net.parameters(), lr=0.0003)
+    
+    for epoch in range(num_epochs):
+        # 1. Shuffle Data per Epoch to break correlation
+        X_epoch, Y_epoch, _ = shuffleData(X_train, Y_train)
+        
+        # 2. Forward Pass
+        outputs = net(inputs)
+        loss = loss_fn(outputs, labels)
+        
+        # 3. Backpropagation
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        
+        # 4. Real-time Logging
+        writer.add_scalar("Loss/train", running_loss, epoch)</code></pre>
+        </section>
+
+        <section>
+            <h2>The Overfitting Phenomenon</h2>
+            <p>The results were a classic lesson in the "Curse of Dimensionality."</p>
+            <ul>
+                <li><strong>Training Accuracy:</strong> ~99.9% (The model memorized the data).</li>
+                <li><strong>Validation Accuracy:</strong> Stalled at ~25%.</li>
+            </ul>
+            <p>Because the input vector was so large (30,000 data points per sample) and the dataset size was relatively small (hundreds of trials), the standard <code>convNet</code> simply memorized the Gaussian noise inherent in the EEG signals. It wasn't learning <em>features</em>; it was acting as a lookup table. This failure was critical—it proved that a generic "computer vision" approach wouldn't work for biological signals. I needed a specialized architecture.</p>
+        </section>
+        
+        <footer>
+            <p>Project Portfolio: CNN-EEG Motor Imagery Classification</p>
+        </footer>
+    </div>
+
+</body>
+</html>
