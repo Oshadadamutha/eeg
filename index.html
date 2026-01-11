@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Week 1 – EEG Data Ingestion & Signal Processing Pipeline</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body {
+    margin: 0;
+    padding: 0;
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: linear-gradient(135deg,#020617,#020617,#0f172a);
+    color: #e5e7eb;
+}
+
+.container {
+    max-width: 1100px;
+    margin: auto;
+    padding: 50px 25px;
+}
+
+h1 {
+    font-size: 2.6em;
+    color: #38bdf8;
+    margin-bottom: 10px;
+}
+
+.subtitle {
+    color: #22c55e;
+    font-weight: 600;
+    margin-bottom: 40px;
+}
+
+.card {
+    background: #020617;
+    padding: 30px;
+    border-radius: 14px;
+    margin-bottom: 30px;
+    box-shadow: 0 0 28px rgba(56,189,248,0.15);
+}
+
+h2 {
+    color: #38bdf8;
+    margin-bottom: 10px;
+}
+
+ul {
+    padding-left: 20px;
+}
+
+code {
+    background: #020617;
+    color: #38bdf8;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.9em;
+}
+
+.badge {
+    display: inline-block;
+    padding: 6px 12px;
+    background: #1e293b;
+    border-radius: 20px;
+    margin: 4px 6px 0 0;
+    font-size: 0.85em;
+    color: #38bdf8;
+}
+.footer {
+    text-align: center;
+    color: #64748b;
+    font-size: 0.9em;
+    margin-top: 60px;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<h1>Week 1 – Data Ingestion & Signal Processing Pipeline</h1>
+<p class="subtitle">
+Objective: Decode complex physiological EEG datasets and prepare them for deep learning ingestion.
+</p>
+
+<div class="card">
+<h2>Dataset Challenge</h2>
+<ul>
+<li>Dataset: <strong>MindBigData Motor Imagery EEG Dataset</strong></li>
+<li>Format: MATLAB v7.3 (HDF5 nested structures)</li>
+<li>Six motor imagery tasks:</li>
+</ul>
+<span class="badge">Left</span>
+<span class="badge">Right</span>
+<span class="badge">Forward</span>
+<span class="badge">Backward</span>
+<span class="badge">Up</span>
+<span class="badge">Down</span>
+<p><br>File pattern:</p>
+<code>MoveSep_session*_sub*_reaching_MI.mat</code>
+</div>
+
+<div class="card">
+<h2>Custom Data Parser</h2>
+<ul>
+<li>Developed <code>dataLoaderNew.py</code> to parse deeply nested HDF5 MATLAB objects.</li>
+<li>Extracted tensors in format: <code>(Trials, Time_Samples, Channels)</code>.</li>
+<li>Enabled safe traversal of variable-depth EEG structures.</li>
+</ul>
+</div>
+
+<div class="card">
+<h2>Tensor Standardization for CNN</h2>
+<ul>
+<li>Standardized EEG data into CNN-ready tensors:</li>
+</ul>
+<code>(N, 1, 60, 2500)</code>
+<ul>
+<li>60 EEG channels mapped as spatial features.</li>
+<li>Time samples preserved for temporal convolution.</li>
+<li>Enabled 2D CNN learning on physiological signals.</li>
+</ul>
+</div>
+
+<div class="card">
+<h2>Class Balancing</h2>
+<ul>
+<li>Aggregated trials across multiple subjects and sessions.</li>
+<li>Removed dataset bias by equalizing class representation.</li>
+<li>Ensured uniform distribution across all six MI classes.</li>
+</ul>
+</div>
+
+<div class="card">
+<h2>Deep Learning Integration</h2>
+<ul>
+<li>Implemented custom <code>torch.utils.data.Dataset</code> wrapper.</li>
+<li>Enabled memory-efficient batch streaming to GPU.</li>
+<li>Pipeline is fully compatible with PyTorch training loops.</li>
+</ul>
+</div>
+
+<div class="footer">
+&copy; 2026 – EEG Motor Imagery Deep Learning Portfolio – Oshada Damutha
+</div>
+
+</div>
+</body>
+</html>
