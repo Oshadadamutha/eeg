@@ -2,147 +2,49 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Week 1 – Data Ingestion & Signal Processing Pipeline</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Week 1 – Data Engineering & Signal Ingestion</title>
 <style>
-body {
-    font-family: Segoe UI, Arial, sans-serif;
-    background:#020617;
-    color:#e5e7eb;
-}
-.container {
-    max-width:1100px;
-    margin:auto;
-    padding:50px 25px;
-}
-.card {
-    background:#020617;
-    padding:30px;
-    border-radius:14px;
-    margin-bottom:30px;
-    box-shadow:0 0 25px rgba(56,189,248,0.15);
-}
-h1,h2 {color:#38bdf8;}
-a {color:#22c55e;text-decoration:none;font-weight:600;}
-code {
-    background:#020617;
-    color:#38bdf8;
-    padding:4px 8px;
-    border-radius:6px;
-}
-.badge {
-    display:inline-block;
-    padding:6px 12px;
-    background:#1e293b;
-    border-radius:20px;
-    margin:4px 6px 0 0;
-    font-size:0.85em;
-    color:#38bdf8;
-}
+body{background:#020617;color:#e5e7eb;font-family:Segoe UI;padding:40px;}
+.container{max-width:1100px;margin:auto;}
+h1,h2{color:#38bdf8;}
+.card{background:#020617;padding:25px;border-radius:12px;margin-bottom:25px;
+box-shadow:0 0 20px rgba(56,189,248,.15);}
+code{background:#020617;color:#38bdf8;padding:4px 6px;border-radius:6px;}
+a{color:#22c55e;text-decoration:none;}
 </style>
 </head>
 <body>
 <div class="container">
-
 <a href="/eeg/index.html">← Back to Home</a>
-
-<h1>Week 1 – Data Ingestion & Signal Processing Pipeline</h1>
+<h1>Taming High-Dimensional Bio-Signals: Building the EEG Data Pipeline</h1>
 
 <div class="card">
-<h2>Objective</h2>
-<p>
-The objective of this week was to decode complex physiological EEG datasets and transform them into a clean, structured, and GPU-ready format suitable for deep learning pipelines. This stage laid the foundation for all subsequent CNN-based motor imagery classification experiments.
-</p>
+<h2>The Challenge: Raw Physiological Data</h2>
+<p>The foundation of any deep learning project is data, but in the field of Brain-Computer Interfaces (BCI), data doesn't come in neat JPEGs or CSVs. I started with the MindBigData EPOH dataset, a massive collection of brain signals recorded during 6 distinct motor imagery tasks: imagining moving a hand Left, Right, Up, Down, Forward, and Backward.</p>
+<p>The raw data was encapsulated in MATLAB’s complex HDF5-based .mat (v7.3) format. My first challenge was bridging the gap between this scientific engineering format and a PyTorch-ready tensor pipeline.</p>
 </div>
 
 <div class="card">
-<h2>Dataset Challenge</h2>
-<p>
-The project utilized the <strong>MindBigData Motor Imagery EEG Dataset</strong>. The dataset was stored in MATLAB v7.3 format which internally uses the HDF5 standard. Each file contained deeply nested hierarchical objects that prevented direct NumPy loading.
-</p>
-
-<p>The dataset consisted of six motor imagery classes:</p>
-
-<span class="badge">Left</span>
-<span class="badge">Right</span>
-<span class="badge">Forward</span>
-<span class="badge">Backward</span>
-<span class="badge">Up</span>
-<span class="badge">Down</span>
-
-<p><br>Files followed the naming pattern:</p>
-<code>MoveSep_session*_sub*_reaching_MI.mat</code>
-
-<p>
-Each file contained multiple EEG trials recorded across 60 channels with high-resolution temporal sampling, resulting in several gigabytes of raw data distributed across multiple sessions and subjects.
-</p>
+<h2>Technical Deep Dive: The Tensor Transformation</h2>
+<p>Raw Input Shape: <code>(N_Trials, 2500_TimeSamples, 60_Channels)</code></p>
+<p>Target Output Shape: <code>(N_Trials, 1, 12, 2500)</code></p>
+<p>I treated EEG signals as "images" and selected only sensorimotor cortex channels.</p>
 </div>
 
 <div class="card">
-<h2>Custom Data Parser – <code>dataLoaderNew.py</code></h2>
-<p>
-A fully customized parser was implemented to traverse nested HDF5 groups safely and extract the raw EEG arrays. The parser decodes variable-depth MATLAB structures and converts them into uniform tensors.
-</p>
+<h2>Code Implementation: dataLoaderNew.py</h2>
+<pre><code>SELECTED_CHANNELS = [17,16,42,15,43,22,21,46,20,47,12,38]
 
-<ul>
-<li>Loaded HDF5 objects using <code>h5py</code>.</li>
-<li>Traversed dynamic object references and groups.</li>
-<li>Extracted EEG signals in the format:</li>
-</ul>
-
-<code>(Trials, Time_Samples, Channels)</code>
-
-<p>
-This structure allowed seamless concatenation of trials across multiple sessions and subjects while preserving channel order and temporal resolution.
-</p>
+class EEGMotorImageryDataset(Dataset):
+    def __init__(self, mat_path, class_name):
+        with h5py.File(mat_path,'r') as f:
+            X = np.array(f['data_struct'][class_name])
+        X = X[:,:,SELECTED_CHANNELS]
+        X = X.transpose(0,2,1)
+        X = X[:,None,:,:]
+        self.X = torch.tensor(X,dtype=torch.float32)</code></pre>
 </div>
-
-<div class="card">
-<h2>Tensor Standardization for CNN</h2>
-<p>
-To enable convolutional neural networks to operate on EEG signals, the extracted data was standardized into the following tensor shape:
-</p>
-
-<code>(N, 1, 60, 2500)</code>
-
-<ul>
-<li><strong>N</strong> – number of trials.</li>
-<li><strong>1</strong> – artificial depth channel.</li>
-<li><strong>60</strong> – EEG electrode channels.</li>
-<li><strong>2500</strong> – time samples per trial.</li>
-</ul>
-
-<p>
-This representation treats EEG as a 2D image, where spatial relationships between electrodes and temporal dynamics can be jointly learned using 2D convolutional kernels.
-</p>
-</div>
-
-<div class="card">
-<h2>Class Balancing Strategy</h2>
-<p>
-To eliminate dataset bias, trials were aggregated across multiple session and subject files. This ensured that each motor imagery class had equal representation across the dataset.
-</p>
-
-<ul>
-<li>Merged trials across all sessions.</li>
-<li>Trimmed over-represented classes.</li>
-<li>Validated final class distribution.</li>
-</ul>
-</div>
-
-<div class="card">
-<h2>Final Outcome</h2>
-<p>
-A memory-efficient <code>torch.utils.data.Dataset</code> wrapper was developed, enabling real-time batch streaming to GPU memory during training. This abstraction hides all file I/O and preprocessing complexity from the model training stage.
-</p>
-
-<ul>
-<li>GPU-ready batch streaming.</li>
-<li>Low RAM footprint.</li>
-<li>Fully compatible with PyTorch training loops.</li>
-</ul>
-</div>
-
 </div>
 </body>
 </html>
+
