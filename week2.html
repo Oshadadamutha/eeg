@@ -1,11 +1,25 @@
 <!DOCTYPE html>
 <html>
-<head><title>Week 2 – Model Architecture</title></head>
-<body style="background:#020617;color:#e5e7eb;font-family:Segoe UI;">
-<div style="max-width:900px;margin:auto;padding:50px;">
-<a href="index.html" style="color:#22c55e;">← Back to Home</a>
-<h1 style="color:#38bdf8;">Week 2 – CNN Architecture Design</h1>
-<p>Design of convolutional layers for EEG spatial-temporal feature extraction.</p>
-</div>
+<head>
+<title>Week 2 – Establishing the Baseline</title>
+<style>body{background:#020617;color:#e5e7eb;font-family:Segoe UI;padding:40px;}h1,h2{color:#38bdf8;}a{color:#22c55e;}</style>
+</head>
+<body>
+<a href="/eeg/index.html">← Back to Home</a>
+<h1>The Baseline Trap – Overfitting on High-Dimensional Noise</h1>
+
+<h2>The Baseline Architecture: convNet</h2>
+<ul>
+<li>Input: 1 x 12 x 2500</li>
+<li>6 Conv Layers + MaxPool + ReLU</li>
+<li>Loss: CrossEntropy</li>
+<li>Optimizer: Adam</li>
+</ul>
+
+<h2>Overfitting Phenomenon</h2>
+<p>Training Accuracy: 99.9%</p>
+<p>Validation Accuracy: ~25%</p>
+<p>The network memorized noise rather than learning structure.</p>
 </body>
 </html>
+
