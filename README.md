@@ -1,2 +1,0 @@
-# eeg
-BCI-EEG-Portfoliyo
