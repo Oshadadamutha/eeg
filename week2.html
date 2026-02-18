@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Week 2 — Baseline CNN | MI-EEG Portfolio</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fafaf8;
+    --surface: #fff;
+    --surface2: #f4f3ef;
+    --border: #e4e2dc;
+    --accent: #dc2626;
+    --accent-light: #fee2e2;
+    --blue: #2563eb;
+    --green: #16a34a;
+    --green-light: #dcfce7;
+    --text: #1c1917;
+    --muted: #78716c;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; line-height: 1.75; }
+
+  .container { max-width: 900px; margin: 0 auto; padding: 64px 40px; }
+
+  /* ── NAV ── */
+  .nav { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 52px; animation: slideIn 0.5s ease both; }
+  .nav a {
+    font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 1.5px;
+    text-transform: uppercase; text-decoration: none; padding: 6px 14px;
+    border-radius: 3px; border: 1px solid var(--border); color: var(--muted); transition: all 0.2s;
+  }
+  .nav a:hover { border-color: var(--accent); color: var(--accent); }
+  .nav a.active { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
+
+  /* ── HEADER ── */
+  .header { margin-bottom: 52px; padding-bottom: 36px; border-bottom: 2px solid var(--text); animation: slideIn 0.6s 0.05s ease both; }
+  .week-tag { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--accent); margin-bottom: 14px; display: flex; align-items: center; gap: 10px; }
+  .week-tag::after { content: ''; flex: 1; height: 1px; background: var(--accent); max-width: 50px; }
+  h1 { font-size: clamp(2.2rem, 5vw, 3.3rem); font-weight: 700; letter-spacing: -1.5px; line-height: 1.08; margin-bottom: 10px; }
+  h1 em { font-style: italic; color: var(--accent); }
+  .tagline { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--muted); }
+
+  /* ── SECTION ── */
+  .section { margin-bottom: 50px; animation: fadeUp 0.6s ease both; }
+  .section:nth-child(3) { animation-delay: 0.1s; }
+  .section:nth-child(4) { animation-delay: 0.2s; }
+  .section:nth-child(5) { animation-delay: 0.3s; }
+  .section:nth-child(6) { animation-delay: 0.4s; }
+
+  h2 { font-size: 1.2rem; font-weight: 700; margin-bottom: 18px; display: flex; align-items: center; gap: 12px; }
+  .num { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--accent); background: var(--accent-light); padding: 4px 10px; border-radius: 3px; }
+
+  p { color: #57534e; font-size: 14.5px; margin-bottom: 14px; }
+  p strong { color: var(--text); }
+
+  /* ── ARCH LIST ── */
+  .arch-list { display: flex; flex-direction: column; gap: 0; margin: 20px 0; }
+  .arch-item { display: flex; gap: 0; border: 1px solid var(--border); }
+  .arch-item:not(:last-child) { border-bottom: none; }
+  .arch-item:first-child { border-radius: 8px 8px 0 0; }
+  .arch-item:last-child { border-radius: 0 0 8px 8px; }
+  .arch-label { width: 160px; background: var(--surface2); padding: 14px 16px; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); border-right: 1px solid var(--border); flex-shrink: 0; display: flex; align-items: center; }
+  .arch-val { padding: 14px 18px; font-size: 13.5px; color: var(--text); font-weight: 500; display: flex; align-items: center; }
+
+  /* ── CODE ── */
+  .code-wrap { background: #1c1917; border-radius: 10px; overflow: hidden; margin: 22px 0; }
+  .code-header { background: #292524; padding: 10px 18px; display: flex; justify-content: space-between; font-family: 'DM Mono', monospace; font-size: 10px; color: #78716c; }
+  .code-header .tag { color: #fb923c; }
+  pre { padding: 20px 22px; font-family: 'DM Mono', monospace; font-size: 12px; line-height: 1.85; overflow-x: auto; color: #d6d3d1; }
+  .kw { color: #fb923c; } .fn { color: #86efac; } .cm { color: #57534e; font-style: italic; }
+  .str { color: #fcd34d; } .num { color: #67e8f9; }
+
+  /* ── ACCURACY SPLIT ── */
+  .acc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 24px 0; }
+  .acc-card { border-radius: 10px; padding: 24px; text-align: center; }
+  .acc-card.bad { background: var(--accent-light); border: 2px solid var(--accent); }
+  .acc-card.good { background: var(--green-light); border: 2px solid var(--green); }
+  .acc-label { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+  .acc-card.bad .acc-label { color: var(--accent); }
+  .acc-card.good .acc-label { color: var(--green); }
+  .acc-num { font-size: 3.2rem; font-weight: 800; letter-spacing: -3px; line-height: 1; }
+  .acc-card.bad .acc-num { color: var(--accent); }
+  .acc-card.good .acc-num { color: var(--green); }
+  .acc-note { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+  /* ── INSIGHT BOX ── */
+  .insight { border: 2px solid var(--accent); border-radius: 10px; padding: 28px 32px; background: #fff7f7; margin-top: 40px; animation: fadeUp 0.6s 0.45s ease both; }
+  .insight h3 { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+  .insight p { margin: 0; font-size: 14.5px; color: #57534e; }
+
+  /* ── FOOTER ── */
+  .footer { margin-top: 60px; padding-top: 22px; border-top: 2px solid var(--text); display: flex; justify-content: space-between; align-items: center; font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); }
+  .footer-nav { display: flex; gap: 16px; }
+  .footer-nav a { color: var(--accent); text-decoration: none; }
+
+  @keyframes slideIn { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: translateX(0); } }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <nav class="nav">
+    <a href="week1.html">W1 · Data</a>
+    <a href="week2.html" class="active">W2 · Baseline</a>
+    <a href="week3.html">W3 · Architecture</a>
+    <a href="week4.html">W4 · Challenges</a>
+    <a href="week5.html">W5 · Pipeline</a>
+    <a href="week6.html">W6 · thinNet</a>
+    <a href="week7.html">W7 · Training</a>
+    <a href="week8.html">W8 · 2-Class</a>
+    <a href="week9.html">W9 · Forensics</a>
+    <a href="week10.html">W10 · 58%</a>
+  </nav>
+
+  <header class="header">
+    <div class="week-tag">Week 02 · Baseline</div>
+    <h1>The <em>Baseline</em> Trap</h1>
+    <div class="tagline">Overfitting on High-Dimensional Noise</div>
+  </header>
+
+  <!-- Section 1 -->
+  <div class="section">
+    <h2><span class="num">01</span> The Objective</h2>
+    <p>With data flowing into the GPU, the next step was to establish a <strong>Baseline</strong> — the Minimum Viable Product of deep learning projects. The goal was to prove that a neural network could learn <em>anything</em> from this EEG data before investing effort in specialized architectures.</p>
+    <p>This "sanity check" phase is essential: if even an overfit model can't learn the training data, the problem is the data pipeline, not the architecture choice.</p>
+  </div>
+
+  <!-- Section 2 -->
+  <div class="section">
+    <h2><span class="num">02</span> The Baseline Architecture: convNet</h2>
+    <p>A standard CNN similar to VGG-16 was implemented, adapted for the rectangular shape of EEG data rather than square image inputs.</p>
+
+    <div class="arch-list">
+      <div class="arch-item">
+        <div class="arch-label">Input Shape</div>
+        <div class="arch-val"><code>1 × 12 × 2500</code></div>
+      </div>
+      <div class="arch-item">
+        <div class="arch-label">Layers</div>
+        <div class="arch-val">6 Convolutional Layers, Max Pooling, ReLU activation</div>
+      </div>
+      <div class="arch-item">
+        <div class="arch-label">Loss Function</div>
+        <div class="arch-val"><code>CrossEntropyLoss</code> — 6-class classification</div>
+      </div>
+      <div class="arch-item">
+        <div class="arch-label">Optimizer</div>
+        <div class="arch-val"><code>Adam</code> — Adaptive Moment Estimation, lr=3e-4</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 3: Code -->
+  <div class="section">
+    <h2><span class="num">03</span> The Training Loop: manualGS.py</h2>
+    <p>A reusable training harness was built with <strong>TensorBoard integration</strong> to visualize the training black box in real time. Each epoch shuffles data to break temporal correlation between trials.</p>
+
+    <div class="code-wrap">
+      <div class="code-header">
+        <span>manualGS.py — Training Loop</span>
+        <span class="tag">PyTorch</span>
+      </div>
+      <pre><span class="kw">def</span> <span class="fn">trainModel</span>(net, X_train, Y_train, ...):
+    optimizer = <span class="fn">Adam</span>(net.parameters(), lr=<span class="num">0.0003</span>)
+
+    <span class="kw">for</span> epoch <span class="kw">in</span> <span class="fn">range</span>(num_epochs):
+        <span class="cm"># 1. Shuffle data per epoch — breaks correlation</span>
+        X_epoch, Y_epoch, _ = <span class="fn">shuffleData</span>(X_train, Y_train)
+
+        <span class="cm"># 2. Forward Pass</span>
+        outputs = <span class="fn">net</span>(inputs)
+        loss = <span class="fn">loss_fn</span>(outputs, labels)
+
+        <span class="cm"># 3. Backpropagation</span>
+        optimizer.<span class="fn">zero_grad</span>()
+        loss.<span class="fn">backward</span>()
+        optimizer.<span class="fn">step</span>()
+
+        <span class="cm"># 4. Real-time logging to TensorBoard</span>
+        writer.<span class="fn">add_scalar</span>(<span class="str">"Loss/train"</span>, running_loss, epoch)</pre>
+    </div>
+  </div>
+
+  <!-- Section 4: Results -->
+  <div class="section">
+    <h2><span class="num">04</span> The Overfitting Phenomenon</h2>
+    <p>The results were a classic lesson in the <strong>"Curse of Dimensionality."</strong> The model memorized training data but completely failed to generalize.</p>
+
+    <div class="acc-grid">
+      <div class="acc-card good">
+        <div class="acc-label">Training Accuracy</div>
+        <div class="acc-num">99.9%</div>
+        <div class="acc-note">Model memorized the data perfectly</div>
+      </div>
+      <div class="acc-card bad">
+        <div class="acc-label">Validation Accuracy</div>
+        <div class="acc-num">~25%</div>
+        <div class="acc-note">Stalled — no real generalization</div>
+      </div>
+    </div>
+
+    <p>Because the input vector was so large (<strong>30,000 data points per sample</strong>) and the dataset size was relatively small (hundreds of trials), the standard <code>convNet</code> simply memorized the Gaussian noise inherent in EEG signals. It was acting as a lookup table, not a feature extractor.</p>
+  </div>
+
+  <!-- Insight -->
+  <div class="insight">
+    <h3>Key Insight — Week 2</h3>
+    <p>This failure was critical — it proved that a generic "computer vision" approach won't work for biological signals. A <strong>specialized architecture</strong> is needed: one that constrains what the model can learn to force it to find physiologically meaningful patterns (frequency bands, spatial topographies) rather than memorize session-specific noise. This motivates Week 3's thinNet design.</p>
+  </div>
+
+  <footer class="footer">
+    <span>MI-EEG · Oshada Damutha · University of Peradeniya</span>
+    <div class="footer-nav">
+      <a href="week1.html">← Week 1</a>
+      <a href="week3.html">Week 3 →</a>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>

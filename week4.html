@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Week 4 — Session Transfer Crisis | MI-EEG Portfolio</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fefefe;
+    --surface: #fff;
+    --surface2: #fafafa;
+    --border: #e5e7eb;
+    --accent: #7c3aed;
+    --accent-light: #ede9fe;
+    --red: #dc2626;
+    --red-light: #fee2e2;
+    --orange: #ea580c;
+    --orange-light: #ffedd5;
+    --green: #16a34a;
+    --green-light: #dcfce7;
+    --text: #111827;
+    --muted: #6b7280;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  /* decorative left bar */
+  body::before { content: ''; position: fixed; left: 0; top: 0; bottom: 0; width: 4px; background: linear-gradient(180deg, var(--red), var(--orange), var(--accent)); }
+
+  body { background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif; line-height: 1.75; }
+  .container { max-width: 900px; margin: 0 auto; padding: 64px 40px 64px 50px; }
+
+  /* ── NAV ── */
+  .nav { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 52px; animation: pop 0.5s cubic-bezier(0.175,0.885,0.32,1.275) both; }
+  .nav a { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; text-decoration: none; padding: 6px 14px; border-radius: 3px; border: 1px solid var(--border); color: var(--muted); transition: all 0.2s; }
+  .nav a:hover { border-color: var(--accent); color: var(--accent); }
+  .nav a.active { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
+
+  /* ── HEADER ── */
+  .header { margin-bottom: 52px; animation: pop 0.6s 0.05s cubic-bezier(0.175,0.885,0.32,1.275) both; }
+  .chip-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+  .chip { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; padding: 4px 12px; border-radius: 20px; font-weight: 600; }
+  .chip.purple { background: var(--accent-light); color: var(--accent); }
+  .chip.red { background: var(--red-light); color: var(--red); }
+  .chip.gray { background: #f3f4f6; color: var(--muted); }
+  h1 { font-size: clamp(2.2rem, 5vw, 3.4rem); font-weight: 800; letter-spacing: -1.5px; line-height: 1.08; }
+  h1 .red { color: var(--red); }
+  .tagline { margin-top: 10px; font-size: 14px; color: var(--muted); }
+
+  /* ── SECTIONS ── */
+  .section { margin-bottom: 50px; animation: fadeUp 0.6s ease both; }
+  .section:nth-child(3) { animation-delay: 0.1s; }
+  .section:nth-child(4) { animation-delay: 0.2s; }
+  .section:nth-child(5) { animation-delay: 0.3s; }
+  .section:nth-child(6) { animation-delay: 0.4s; }
+
+  h2 { font-size: 1.2rem; font-weight: 700; margin-bottom: 18px; display: flex; align-items: center; gap: 12px; }
+  .pill { background: var(--accent); color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 9px; padding: 4px 10px; border-radius: 20px; }
+
+  p { color: #4b5563; font-size: 14.5px; margin-bottom: 14px; }
+  p strong { color: var(--text); }
+
+  /* ── HYPOTHESIS ── */
+  .hyp-flow { display: flex; align-items: stretch; gap: 0; margin: 22px 0; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .hyp-step { flex: 1; padding: 20px; text-align: center; }
+  .hyp-step:not(:last-child) { border-right: 1px solid var(--border); }
+  .hyp-step.train { background: var(--green-light); }
+  .hyp-step.test { background: var(--red-light); }
+  .hyp-step .step-label { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; font-weight: 700; margin-bottom: 6px; }
+  .hyp-step.train .step-label { color: var(--green); }
+  .hyp-step.test .step-label { color: var(--red); }
+  .hyp-step .step-val { font-size: 14px; font-weight: 600; color: var(--text); }
+  .hyp-step .step-note { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .hyp-sep { width: 48px; background: #f9fafb; display: flex; align-items: center; justify-content: center; font-size: 20px; color: var(--muted); border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
+
+  /* ── CODE ── */
+  .code-block { background: #111827; border-radius: 10px; overflow: hidden; margin: 20px 0; }
+  .code-top { background: #1f2937; border-bottom: 1px solid #374151; padding: 10px 18px; display: flex; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #6b7280; }
+  .code-top .tag { color: #818cf8; }
+  pre { padding: 20px 22px; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.85; overflow-x: auto; color: #d1d5db; }
+  .kw { color: #f472b6; } .fn { color: #86efac; } .cm { color: #374151; font-style: italic; }
+  .str { color: #fbbf24; } .num { color: #67e8f9; }
+
+  /* ── FAILURE NUMBERS ── */
+  .fail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 22px 0; }
+  .fail-card { border-radius: 12px; padding: 28px 24px; text-align: center; }
+  .fail-card.ok { background: var(--green-light); border: 2px solid var(--green); }
+  .fail-card.bad { background: var(--red-light); border: 2px solid var(--red); }
+  .fail-label { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; font-weight: 700; margin-bottom: 8px; }
+  .fail-card.ok .fail-label { color: var(--green); }
+  .fail-card.bad .fail-label { color: var(--red); }
+  .fail-num { font-size: 3.5rem; font-weight: 800; letter-spacing: -3px; line-height: 1; }
+  .fail-card.ok .fail-num { color: var(--green); }
+  .fail-card.bad .fail-num { color: var(--red); }
+  .fail-note { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+  /* ── ROOT CAUSE ── */
+  .cause-list { display: flex; flex-direction: column; gap: 14px; margin: 20px 0; }
+  .cause-item { display: flex; gap: 16px; align-items: flex-start; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; transition: border-color 0.2s; }
+  .cause-item:hover { border-color: rgba(124,58,237,0.3); }
+  .cause-num { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent); background: var(--accent-light); padding: 4px 10px; border-radius: 4px; flex-shrink: 0; }
+  .cause-body h3 { font-size: 13.5px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .cause-body p { font-size: 13px; margin: 0; }
+
+  /* ── HARD PROBLEM BOX ── */
+  .hard-problem { background: linear-gradient(135deg, var(--accent-light), #fdf4ff); border: 2px solid var(--accent); border-radius: 12px; padding: 32px; text-align: center; margin-top: 40px; animation: fadeUp 0.6s 0.45s ease both; }
+  .hard-problem h3 { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--accent); font-family: 'JetBrains Mono', monospace; margin-bottom: 10px; }
+  .hard-problem .term { font-size: 1.5rem; font-weight: 800; color: var(--accent); letter-spacing: -1px; display: block; margin: 8px 0; }
+  .hard-problem p { color: #4b5563; font-size: 14px; margin: 0; max-width: 580px; margin: 0 auto; }
+
+  /* ── FOOTER ── */
+  .footer { margin-top: 60px; padding-top: 22px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); }
+  .footer-nav { display: flex; gap: 16px; }
+  .footer-nav a { color: var(--accent); text-decoration: none; }
+
+  @keyframes pop { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <nav class="nav">
+    <a href="week1.html">W1 · Data</a>
+    <a href="week2.html">W2 · Baseline</a>
+    <a href="week3.html">W3 · Architecture</a>
+    <a href="week4.html" class="active">W4 · Challenges</a>
+    <a href="week5.html">W5 · Pipeline</a>
+    <a href="week6.html">W6 · thinNet</a>
+    <a href="week7.html">W7 · Training</a>
+    <a href="week8.html">W8 · 2-Class</a>
+    <a href="week9.html">W9 · Forensics</a>
+    <a href="week10.html">W10 · 58%</a>
+  </nav>
+
+  <header class="header">
+    <div class="chip-row">
+      <span class="chip purple">Week 04</span>
+      <span class="chip red">Critical Failure</span>
+      <span class="chip gray">Non-Stationarity</span>
+    </div>
+    <h1>The <span class="red">"Session Transfer"</span><br>Crisis</h1>
+    <div class="tagline">Why Brain Signals Drift — and How It Breaks Everything</div>
+  </header>
+
+  <!-- Section 1 -->
+  <div class="section">
+    <h2><span class="pill">01</span> The Hypothesis</h2>
+    <p>A robust AI model should generalize to new data it has never seen. In BCI, this means calibrating on one day and expecting it to work on another — the most critical real-world requirement for any practical Brain-Computer Interface.</p>
+
+    <div class="hyp-flow">
+      <div class="hyp-step train">
+        <div class="step-label">Train</div>
+        <div class="step-val">Sessions 1 & 2</div>
+        <div class="step-note">Recorded Day 1</div>
+      </div>
+      <div class="hyp-sep">→</div>
+      <div class="hyp-step test">
+        <div class="step-label">Test</div>
+        <div class="step-val">Session 3</div>
+        <div class="step-note">Recorded on a different day</div>
+      </div>
+    </div>
+
+    <p>This simulates the real scenario: a user calibrates a BCI device on <strong>Monday</strong> and expects it to work on <strong>Tuesday</strong>. If the model can't generalize across sessions, it has zero practical value.</p>
+  </div>
+
+  <!-- Section 2 -->
+  <div class="section">
+    <h2><span class="pill">02</span> The Experiment</h2>
+    <p>The <code>load_mi_data</code> function was used to split files strictly by session filename — no trial-level shuffling allowed, preserving the integrity of the cross-session test.</p>
+
+    <div class="code-block">
+      <div class="code-top"><span>Session Split — Strict Filename Partitioning</span><span class="tag">Python</span></div>
+      <pre><span class="cm"># Strict Session Split — NO trial-level shuffling</span>
+X_train, Y_train = <span class="fn">load_mi_data</span>(
+    data_directory,
+    session_patterns=[<span class="str">'session1'</span>, <span class="str">'session2'</span>]
+)
+X_test, Y_test = <span class="fn">load_mi_data</span>(
+    data_directory,
+    session_patterns=[<span class="str">'session3'</span>]  <span class="cm"># Unseen session</span>
+)</pre>
+    </div>
+  </div>
+
+  <!-- Section 3: Failure -->
+  <div class="section">
+    <h2><span class="pill">03</span> The Failure</h2>
+    <p>The results were stark. The model achieved near-perfect training performance but completely failed on the new session — performing no better than random chance.</p>
+
+    <div class="fail-grid">
+      <div class="fail-card ok">
+        <div class="fail-label">Train Accuracy</div>
+        <div class="fail-num">&gt;90%</div>
+        <div class="fail-note">Sessions 1 & 2 — memorized</div>
+      </div>
+      <div class="fail-card bad">
+        <div class="fail-label">Test Accuracy</div>
+        <div class="fail-num">~16%</div>
+        <div class="fail-note">Session 3 — random chance (6 classes = 16.6%)</div>
+      </div>
+    </div>
+
+    <p>With 6 classes, a random guess yields exactly <strong>16.6%</strong>. The model was performing at pure chance on the new session — meaning it had learned <em>zero transferable knowledge</em>.</p>
+  </div>
+
+  <!-- Section 4: Root cause -->
+  <div class="section">
+    <h2><span class="pill">04</span> Root Cause Analysis: EEG Non-Stationarity</h2>
+    <p>A deep dive into the BCI literature uncovered the root cause. EEG signals are <strong>non-stationary</strong> — their statistical properties change over time due to multiple physical and physiological factors.</p>
+
+    <div class="cause-list">
+      <div class="cause-item">
+        <div class="cause-num">01</div>
+        <div class="cause-body">
+          <h3>Electrode Impedance Changes</h3>
+          <p>The conductivity of the conductive gel changes as it dries between sessions, shifting signal amplitudes and channel characteristics.</p>
+        </div>
+      </div>
+      <div class="cause-item">
+        <div class="cause-num">02</div>
+        <div class="cause-body">
+          <h3>Headset Cap Displacement</h3>
+          <p>Slight shifts in electrode position between donning/doffing the headset change the spatial mapping of EEG channels to brain regions.</p>
+        </div>
+      </div>
+      <div class="cause-item">
+        <div class="cause-num">03</div>
+        <div class="cause-body">
+          <h3>User Fatigue & Cognitive State</h3>
+          <p>The brain produces measurably different signals when tired vs. alert. Session 3 (a different day) represents a completely different cognitive baseline.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hard problem box -->
+  <div class="hard-problem">
+    <h3>The Hard Problem of BCI</h3>
+    <span class="term">Cross-Session Transfer</span>
+    <p>The model had learned the specific "noise fingerprint" of Sessions 1 & 2, but those fingerprints don't exist in Session 3. This is a known hard problem in BCI research. Solving it requires either <strong>domain adaptation</strong> (Phase 3) or <strong>randomized trial splitting</strong> to first establish a learnability baseline — which motivates Week 5's approach.</p>
+  </div>
+
+  <footer class="footer">
+    <span>MI-EEG · Oshada Damutha · University of Peradeniya</span>
+    <div class="footer-nav">
+      <a href="week3.html">← Week 3</a>
+      <a href="week5.html">Week 5 →</a>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>
