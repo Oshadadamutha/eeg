@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Week 8 — Fixing the 2-Class Pipeline</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Unbounded:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #050510;
+    --surface: #0c0c1e;
+    --panel: #10102a;
+    --accent: #6ee7f7;
+    --warn: #ffb347;
+    --ok: #5af78e;
+    --text: #d0d8f0;
+    --muted: #505878;
+    --border: #1a1a38;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Scanline effect */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.15) 2px,
+      rgba(0,0,0,0.15) 4px
+    );
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  /* Glow orb */
+  .glow-orb {
+    position: fixed;
+    top: -200px;
+    right: -100px;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(110,231,247,0.06) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container { max-width: 880px; margin: 0 auto; padding: 0 36px; position: relative; z-index: 1; }
+
+  header {
+    padding: 56px 0 36px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+  .terminal-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 24px;
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot.r { background: #ff5f56; }
+  .dot.y { background: #ffbd2e; }
+  .dot.g { background: #27c93f; }
+  .terminal-title {
+    margin-left: 8px;
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  h1 {
+    font-family: 'Unbounded', sans-serif;
+    font-size: clamp(1.8rem, 4.5vw, 3rem);
+    font-weight: 900;
+    line-height: 1.1;
+    letter-spacing: -1px;
+  }
+  h1 .hi { color: var(--accent); }
+  .prompt {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 14px;
+  }
+  .prompt span { color: var(--ok); }
+
+  /* Section */
+  section { padding: 36px 0; border-bottom: 1px solid var(--border); }
+  h2 {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--accent);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  h2::before { content: '//'; color: var(--muted); font-size: 0.8rem; }
+
+  p { line-height: 1.8; color: #a0aac8; margin-bottom: 14px; font-size: 0.85rem; }
+
+  /* Loss fix diagram */
+  .fix-diagram {
+    display: grid;
+    grid-template-columns: 1fr 60px 1fr;
+    gap: 0;
+    align-items: center;
+    margin: 24px 0;
+  }
+  .fix-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 20px;
+  }
+  .fix-box.wrong { border-color: rgba(255,80,80,0.4); }
+  .fix-box.right { border-color: rgba(90,247,142,0.4); }
+  .fix-tag {
+    font-size: 0.65rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    display: block;
+  }
+  .fix-box.wrong .fix-tag { color: #ff5050; }
+  .fix-box.right .fix-tag { color: var(--ok); }
+  .fix-box h3 { font-size: 0.9rem; font-weight: 700; margin-bottom: 6px; }
+  .fix-box p { font-size: 0.78rem; color: var(--muted); margin: 0; }
+  .arrow-mid {
+    text-align: center;
+    font-size: 1.5rem;
+    color: var(--warn);
+    font-weight: 700;
+  }
+
+  /* Code */
+  pre {
+    background: #02020e;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    padding: 20px;
+    font-size: 0.78rem;
+    line-height: 1.75;
+    overflow-x: auto;
+    margin: 14px 0;
+    color: #8090b8;
+  }
+  .kw { color: #c792ea; }
+  .fn { color: var(--accent); }
+  .st { color: var(--warn); }
+  .ok { color: var(--ok); }
+  .err { color: #ff5050; text-decoration: line-through; opacity: 0.6; }
+  .cm { color: #303858; }
+
+  /* Binary class visual */
+  .binary-visual {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 20px 0;
+  }
+  .class-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 24px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .class-card::before {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .class-card.left-class::before { background: var(--accent); }
+  .class-card.right-class::before { background: var(--warn); }
+  .class-num {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 3rem;
+    font-weight: 900;
+    opacity: 0.15;
+    position: absolute;
+    top: 8px;
+    right: 16px;
+  }
+  .class-label { font-family: 'Unbounded', sans-serif; font-size: 0.85rem; font-weight: 700; margin-bottom: 6px; }
+  .class-card.left-class .class-label { color: var(--accent); }
+  .class-card.right-class .class-label { color: var(--warn); }
+  .class-desc { font-size: 0.75rem; color: var(--muted); line-height: 1.5; }
+  .class-hz {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 3px 10px;
+    border: 1px solid var(--border);
+    font-size: 0.7rem;
+    color: var(--muted);
+  }
+
+  /* Confusion matrix */
+  .cm-grid {
+    display: grid;
+    grid-template-columns: 60px 1fr 1fr;
+    grid-template-rows: 40px 1fr 1fr;
+    gap: 2px;
+    margin: 20px 0;
+    max-width: 320px;
+  }
+  .cm-header {
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+  .cm-cell {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 16px;
+    text-align: center;
+  }
+  .cm-cell.tp { border-color: rgba(90,247,142,0.4); }
+  .cm-cell.tn { border-color: rgba(90,247,142,0.4); }
+  .cm-cell.fp { border-color: rgba(255,80,80,0.2); }
+  .cm-cell.fn-cell { border-color: rgba(255,80,80,0.2); }
+  .cm-val { font-family: 'Unbounded', sans-serif; font-size: 1.2rem; font-weight: 900; }
+  .cm-cell.tp .cm-val, .cm-cell.tn .cm-val { color: var(--ok); }
+  .cm-cell.fp .cm-val, .cm-cell.fn-cell .cm-val { color: #ff5050; opacity: 0.6; }
+  .cm-name { font-size: 0.6rem; color: var(--muted); margin-top: 2px; }
+
+  /* Metrics row */
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 20px 0; }
+  .metric {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 16px 12px;
+    text-align: center;
+  }
+  .metric-val {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 900;
+    color: var(--accent);
+    display: block;
+  }
+  .metric-label { font-size: 0.62rem; color: var(--muted); margin-top: 4px; letter-spacing: 1px; }
+
+  footer {
+    padding: 28px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .footer-id { font-size: 0.7rem; color: var(--muted); }
+  .nav { display: flex; gap: 12px; }
+  .nav a {
+    font-size: 0.72rem;
+    color: var(--muted);
+    text-decoration: none;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    transition: all 0.2s;
+  }
+  .nav a:hover { color: var(--accent); border-color: var(--accent); }
+  /* ── TOP NAV ── */
+  .top-nav {
+    display: flex; gap: 6px; flex-wrap: wrap;
+    padding: 28px 0 0;
+    margin-bottom: 0;
+    position: relative; z-index: 1;
+  }
+  .top-nav a {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    letter-spacing: 1.5px; text-transform: uppercase; text-decoration: none;
+    padding: 5px 12px; border-radius: 3px;
+    border: 1px solid #1a1a38; color: #505878;
+    transition: all 0.2s;
+  }
+  .top-nav a:hover { border-color: #6ee7f7; color: #6ee7f7; }
+  .top-nav a.active { background: rgba(110,231,247,0.12); color: #6ee7f7; border-color: #6ee7f7; font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="glow-orb"></div>
+<div class="container">
+  <nav class="top-nav">
+    <a href="week1.html">W1 · Data</a>
+    <a href="week2.html">W2 · Baseline</a>
+    <a href="week3.html">W3 · Architecture</a>
+    <a href="week4.html">W4 · Challenges</a>
+    <a href="week5.html">W5 · Pipeline</a>
+    <a href="week6.html">W6 · thinNet</a>
+    <a href="week7.html">W7 · Training</a>
+    <a href="week8.html" class="active">W8 · 2-Class</a>
+    <a href="week9.html">W9 · Forensics</a>
+    <a href="week10.html">W10 · 58%</a>
+    <a href="week11.html">W11 · Literature</a>
+    <a href="week12.html">W12 · LSTM</a>
+    <a href="week13.html">W13 · Hybrid</a>
+  </nav>
+  <header>
+    <div class="terminal-bar">
+      <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+      <span class="terminal-title">week_08_pipeline_fix.py — MI-EEG Project</span>
+    </div>
+    <h1>Fixing the<br><span class="hi">2-Class</span><br>Pipeline</h1>
+    <div class="prompt"><span>$</span> python train_cnn.py --classes left right --fix-loss --target-acc 0.52</div>
+  </header>
+
+  <section>
+    <h2>Objective</h2>
+    <p>Weeks 5–7 validated the end-to-end pipeline on a binary Left vs. Right task. Week 8 locks in the 2-class system permanently, resolves the identified NLLLoss/CrossEntropyLoss mismatch, and establishes the first meaningful accuracy benchmark above chance level (50%).</p>
+
+    <div class="binary-visual">
+      <div class="class-card left-class">
+        <div class="class-num">0</div>
+        <div class="class-label">LEFT HAND</div>
+        <div class="class-desc">Motor Imagery of left hand movement. ERD appears in contralateral (right) hemisphere — primarily electrode C4.</div>
+        <span class="class-hz">Label → 0</span>
+      </div>
+      <div class="class-card right-class">
+        <div class="class-num">1</div>
+        <div class="class-label">RIGHT HAND</div>
+        <div class="class-desc">Motor Imagery of right hand movement. ERD appears in contralateral (left) hemisphere — primarily electrode C3.</div>
+        <span class="class-hz">Label → 1</span>
+      </div>
+    </div>
+
+    <pre><span class="cm"># Dataset audit — confirm strictly 2-class</span>
+<span class="kw">assert</span> <span class="fn">set</span>(dataset.classes) == {<span class="st">'left'</span>, <span class="st">'right'</span>}, \
+    <span class="st">"Dataset must be strictly 2-class!"</span>
+
+<span class="cm"># Label encoding</span>
+CLASS_MAP = {<span class="st">'left'</span>: <span class="st">0</span>, <span class="st">'right'</span>: <span class="st">1</span>}
+CHANCE_LEVEL = <span class="st">0.50</span>  <span class="cm"># Binary classification baseline</span></pre>
+  </section>
+
+  <section>
+    <h2>Loss Function Fix: NLLLoss → CrossEntropyLoss</h2>
+    <p>The mismatch identified in Week 7 is the single highest-impact fix available. The mathematical error was silently corrupting gradient flow throughout training, costing an estimated 2–4% accuracy.</p>
+
+    <div class="fix-diagram">
+      <div class="fix-box wrong">
+        <span class="fix-tag">❌ Before</span>
+        <h3>NLLLoss + Raw Logits</h3>
+        <p>NLLLoss expects log-probabilities. Passing raw logits produces incorrect negative log-likelihood gradients.</p>
+      </div>
+      <div class="arrow-mid">→</div>
+      <div class="fix-box right">
+        <span class="fix-tag">✓ After</span>
+        <h3>CrossEntropyLoss</h3>
+        <p>Internally applies LogSoftmax + NLLLoss. Accepts raw logits. Mathematically correct gradient flow.</p>
+      </div>
+    </div>
+
+    <pre><span class="cm"># train_cnn.py — Loss function correction</span>
+<span class="cm"># BEFORE (Week 7 — incorrect):</span>
+<span class="err">criterion = nn.NLLLoss()  # Requires LogSoftmax output!</span>
+
+<span class="cm"># AFTER (Week 8 — correct):</span>
+criterion = <span class="fn">nn.CrossEntropyLoss</span>()  <span class="ok"># ✓ Handles softmax internally</span>
+
+<span class="cm"># Optional: Fix Option B — add to model instead</span>
+<span class="cm"># self.softmax = nn.LogSoftmax(dim=1)</span>
+<span class="cm"># return self.softmax(self.classifier(x))</span></pre>
+  </section>
+
+  <section>
+    <h2>Binary Confusion Matrix & Metrics</h2>
+    <p>With only 2 classes, the confusion matrix reduces to a 2×2 grid. The key metric for EEG is Balanced Accuracy, which accounts for any class imbalance between Left and Right trials.</p>
+
+    <div class="cm-grid">
+      <div class="cm-header"></div>
+      <div class="cm-header">PRED LEFT</div>
+      <div class="cm-header">PRED RIGHT</div>
+      <div class="cm-header" style="writing-mode: vertical-rl; font-size:0.58rem;">TRUE LEFT</div>
+      <div class="cm-cell tp"><div class="cm-val">TP</div><div class="cm-name">True Left</div></div>
+      <div class="cm-cell fp"><div class="cm-val">FP</div><div class="cm-name">Miss</div></div>
+      <div class="cm-header" style="writing-mode: vertical-rl; font-size:0.58rem;">TRUE RIGHT</div>
+      <div class="cm-cell fn-cell"><div class="cm-val">FN</div><div class="cm-name">Miss</div></div>
+      <div class="cm-cell tn"><div class="cm-val">TN</div><div class="cm-name">True Right</div></div>
+    </div>
+
+    <div class="metrics">
+      <div class="metric"><span class="metric-val">50%</span><span class="metric-label">Chance Level</span></div>
+      <div class="metric"><span class="metric-val">≥52%</span><span class="metric-label">Week 8 Target</span></div>
+      <div class="metric"><span class="metric-val">BAcc</span><span class="metric-label">Primary Metric</span></div>
+      <div class="metric"><span class="metric-val">+3%</span><span class="metric-label">Est. Loss Fix Gain</span></div>
+    </div>
+
+    <pre><span class="cm"># Evaluation — balanced accuracy for binary task</span>
+<span class="kw">from</span> sklearn.metrics <span class="kw">import</span> confusion_matrix, balanced_accuracy_score
+
+cm = <span class="fn">confusion_matrix</span>(all_labels, all_preds)
+bacc = <span class="fn">balanced_accuracy_score</span>(all_labels, all_preds)
+<span class="fn">print</span>(<span class="st">f"Confusion Matrix:\n{cm}"</span>)
+<span class="fn">print</span>(<span class="st">f"Balanced Accuracy: {bacc:.3f}"</span>)</pre>
+  </section>
+
+  <footer>
+    <div class="footer-id">MI-EEG Project · Week 08 · February 2026</div>
+    <div class="nav">
+      <a href="week7.html">← Week 7</a>
+      <a href="week9.html">Week 9 →</a>
+    </div>
+  </footer>
+</div>
+</body>
+</html>
