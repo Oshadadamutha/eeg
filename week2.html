@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Week 2 — Baseline CNN | MI-EEG Portfolio</title>
+
+
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f4ef;
+    --surface: #ffffff;
+    --border: #e0d9d0;
+    --accent: #1a3a5c;
+    --accent2: #c8692a;
+    --green: #1e6642;
+    --text: #1a1410;
+    --muted: #7a7168;
+    --tag-bg: #eae5dc;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    line-height: 1.75;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 28px, rgba(0,0,0,0.025) 28px, rgba(0,0,0,0.025) 29px);
+    pointer-events: none; z-index: 0;
+  }
+  .container { max-width: 920px; margin: 0 auto; padding: 0 44px; position: relative; z-index: 1; }
+  /* ── NAV ── */
+  .nav {
+    display: flex; gap: 5px; flex-wrap: wrap;
+    padding: 28px 0 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 52px;
+  }
+  .nav a {
+    font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 600;
+    letter-spacing: 1.5px; text-transform: uppercase; text-decoration: none;
+    padding: 5px 12px; border-radius: 2px;
+    border: 1px solid var(--border); color: var(--muted);
+    transition: all 0.2s;
+  }
+  .nav a:hover { border-color: var(--accent); color: var(--accent); }
+  .nav a.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <nav class="nav">
+    <a href="week1.html">W1 · Data</a>
+    <a href="week2.html" class="active">W2 · Baseline</a>
+    <a href="week3.html">W3 · Architecture</a>
+    <a href="week4.html">W4 · Challenges</a>
+    <a href="week5.html">W5 · Pipeline</a>
+    <a href="week6.html">W6 · thinNet</a>
+    <a href="week7.html">W7 · Training</a>
+    <a href="week8.html">W8 · 2-Class</a>
+    <a href="week9.html">W9 · Forensics</a>
+    <a href="week10.html">W10 · 58%</a>
+    <a href="week11.html">W11 · Literature</a>
+    <a href="week12.html">W12 · LSTM</a>
+    <a href="week13.html">W13 · Hybrid</a>
+  </nav>
+
+
+  <header class="header">
+    <div class="week-tag">Week 02 · Baseline</div>
+    <h1>The <em>Baseline</em> Trap</h1>
+    <div class="tagline">Overfitting on High-Dimensional Noise</div>
+  </header>
+
+  <!-- Section 1 -->
+  <div class="section">
+    <h2><span class="num">01</span> The Objective</h2>
+    <p>With data flowing into the GPU, the next step was to establish a <strong>Baseline</strong> — the Minimum Viable Product of deep learning projects. The goal was to prove that a neural network could learn <em>anything</em> from this EEG data before investing effort in specialized architectures.</p>
+    <p>This "sanity check" phase is essential: if even an overfit model can't learn the training data, the problem is the data pipeline, not the architecture choice.</p>
+  </div>
+
+  <!-- Section 2 -->
+  <div class="section">
+    <h2><span class="num">02</span> The Baseline Architecture: convNet</h2>
+    <p>A standard CNN similar to VGG-16 was implemented, adapted for the rectangular shape of EEG data rather than square image inputs.</p>
+
+    <div class="arch-list">
+      <div class="arch-item">
+        <div class="arch-label">Input Shape</div>
+        <div class="arch-val"><code>1 × 12 × 2500</code></div>
+      </div>
+      <div class="arch-item">
+        <div class="arch-label">Layers</div>
+        <div class="arch-val">6 Convolutional Layers, Max Pooling, ReLU activation</div>
+      </div>
+      <div class="arch-item">
+        <div class="arch-label">Loss Function</div>
+        <div class="arch-val"><code>CrossEntropyLoss</code> — 6-class classification</div>
+      </div>
+      <div class="arch-item">
+        <div class="arch-label">Optimizer</div>
+        <div class="arch-val"><code>Adam</code> — Adaptive Moment Estimation, lr=3e-4</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 3: Code -->
+  <div class="section">
+    <h2><span class="num">03</span> The Training Loop: manualGS.py</h2>
+    <p>A reusable training harness was built with <strong>TensorBoard integration</strong> to visualize the training black box in real time. Each epoch shuffles data to break temporal correlation between trials.</p>
+
+    <div class="code-wrap">
+      <div class="code-header">
+        <span>manualGS.py — Training Loop</span>
+        <span class="tag">PyTorch</span>
+      </div>
+      <pre><span class="kw">def</span> <span class="fn">trainModel</span>(net, X_train, Y_train, ...):
+    optimizer = <span class="fn">Adam</span>(net.parameters(), lr=<span class="num">0.0003</span>)
+
+    <span class="kw">for</span> epoch <span class="kw">in</span> <span class="fn">range</span>(num_epochs):
+        <span class="cm"># 1. Shuffle data per epoch — breaks correlation</span>
+        X_epoch, Y_epoch, _ = <span class="fn">shuffleData</span>(X_train, Y_train)
+
+        <span class="cm"># 2. Forward Pass</span>
+        outputs = <span class="fn">net</span>(inputs)
+        loss = <span class="fn">loss_fn</span>(outputs, labels)
+
+        <span class="cm"># 3. Backpropagation</span>
+        optimizer.<span class="fn">zero_grad</span>()
+        loss.<span class="fn">backward</span>()
+        optimizer.<span class="fn">step</span>()
+
+        <span class="cm"># 4. Real-time logging to TensorBoard</span>
+        writer.<span class="fn">add_scalar</span>(<span class="str">"Loss/train"</span>, running_loss, epoch)</pre>
+    </div>
+  </div>
+
+  <!-- Section 4: Results -->
+  <div class="section">
+    <h2><span class="num">04</span> The Overfitting Phenomenon</h2>
+    <p>The results were a classic lesson in the <strong>"Curse of Dimensionality."</strong> The model memorized training data but completely failed to generalize.</p>
+
+    <div class="acc-grid">
+      <div class="acc-card good">
+        <div class="acc-label">Training Accuracy</div>
+        <div class="acc-num">99.9%</div>
+        <div class="acc-note">Model memorized the data perfectly</div>
+      </div>
+      <div class="acc-card bad">
+        <div class="acc-label">Validation Accuracy</div>
+        <div class="acc-num">~25%</div>
+        <div class="acc-note">Stalled — no real generalization</div>
+      </div>
+    </div>
+
+    <p>Because the input vector was so large (<strong>30,000 data points per sample</strong>) and the dataset size was relatively small (hundreds of trials), the standard <code>convNet</code> simply memorized the Gaussian noise inherent in EEG signals. It was acting as a lookup table, not a feature extractor.</p>
+  </div>
+
+  <!-- Insight -->
+  <div class="insight">
+    <h3>Key Insight — Week 2</h3>
+    <p>This failure was critical — it proved that a generic "computer vision" approach won't work for biological signals. A <strong>specialized architecture</strong> is needed: one that constrains what the model can learn to force it to find physiologically meaningful patterns (frequency bands, spatial topographies) rather than memorize session-specific noise. This motivates Week 3's thinNet design.</p>
+  </div>
+
+  <footer class="footer">
+    <span>MI-EEG · Oshada Damutha · University of Peradeniya</span>
+    <div class="footer-nav">
+      <a href="week1.html">← Week 1</a>
+      <a href="week3.html">Week 3 →</a>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>

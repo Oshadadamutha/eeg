@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Week 10 — Benchmarking & 58% Milestone</title>
+
+
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f4ef;
+    --surface: #ffffff;
+    --border: #e0d9d0;
+    --accent: #1a3a5c;
+    --accent2: #c8692a;
+    --green: #1e6642;
+    --text: #1a1410;
+    --muted: #7a7168;
+    --tag-bg: #eae5dc;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    line-height: 1.75;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 28px, rgba(0,0,0,0.025) 28px, rgba(0,0,0,0.025) 29px);
+    pointer-events: none; z-index: 0;
+  }
+  .container { max-width: 920px; margin: 0 auto; padding: 0 44px; position: relative; z-index: 1; }
+  /* ── NAV ── */
+  .nav {
+    display: flex; gap: 5px; flex-wrap: wrap;
+    padding: 28px 0 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 52px;
+  }
+  .nav a {
+    font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 600;
+    letter-spacing: 1.5px; text-transform: uppercase; text-decoration: none;
+    padding: 5px 12px; border-radius: 2px;
+    border: 1px solid var(--border); color: var(--muted);
+    transition: all 0.2s;
+  }
+  .nav a:hover { border-color: var(--accent); color: var(--accent); }
+  .nav a.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <nav class="nav">
+    <a href="week1.html">W1 · Data</a>
+    <a href="week2.html">W2 · Baseline</a>
+    <a href="week3.html">W3 · Architecture</a>
+    <a href="week4.html">W4 · Challenges</a>
+    <a href="week5.html">W5 · Pipeline</a>
+    <a href="week6.html">W6 · thinNet</a>
+    <a href="week7.html">W7 · Training</a>
+    <a href="week8.html">W8 · 2-Class</a>
+    <a href="week9.html">W9 · Forensics</a>
+    <a href="week10.html" class="active">W10 · 58%</a>
+    <a href="week11.html">W11 · Literature</a>
+    <a href="week12.html">W12 · LSTM</a>
+    <a href="week13.html">W13 · Hybrid</a>
+  </nav>
+
+  <header>
+    <div class="phase-badge">Week 10 · MI-EEG Project · Phase 2 Final</div>
+    <h1>
+      Milestone<br>Achieved
+      <span class="milestone">58%</span>
+    </h1>
+    <div class="header-sub">// 2-Class Left vs Right · Validation Accuracy · thinNet · EEGNet Benchmark</div>
+  </header>
+
+  <section>
+    <h2>The Showdown <span class="sep">|</span> thinNet vs EEGNet</h2>
+    <p>Week 10 ran both architectures head-to-head under identical conditions: 2-class Left vs Right classification, normalized data, CrossEntropyLoss, randomized 70/15/15 split, 40 epochs. The results confirmed thinNet's ability to achieve higher peak accuracy while EEGNet demonstrated superior training stability.</p>
+
+    <div class="model-race">
+      <div class="model-card winner">
+        <div class="model-name">thinNet</div>
+        <div class="model-acc">58%</div>
+        <div class="model-props">
+          <div class="model-prop"><span>Parameters</span><strong>~20k</strong></div>
+          <div class="model-prop"><span>Convergence</span><strong>Sensitive</strong></div>
+          <div class="model-prop"><span>Peak Val Acc</span><strong style="color:var(--gold)">58.0%</strong></div>
+          <div class="model-prop"><span>Config</span><strong>LR=1e-4, DO=0.5</strong></div>
+        </div>
+      </div>
+      <div class="model-card">
+        <div class="model-name">EEGNet</div>
+        <div class="model-acc">56%</div>
+        <div class="model-props">
+          <div class="model-prop"><span>Architecture</span><strong>Depthwise Sep Conv</strong></div>
+          <div class="model-prop"><span>Convergence</span><strong>Stable</strong></div>
+          <div class="model-prop"><span>Peak Val Acc</span><strong>~56%</strong></div>
+          <div class="model-prop"><span>Config</span><strong>Default</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="acc-climb">
+      <div class="climb-row">
+        <span class="climb-label">Chance</span>
+        <div class="climb-track"><div class="climb-fill" style="width:50%; background:var(--muted)"></div></div>
+        <span class="climb-val" style="color:var(--muted)">50%</span>
+      </div>
+      <div class="climb-row">
+        <span class="climb-label">Wk 7 Base</span>
+        <div class="climb-track"><div class="climb-fill" style="width:51%; background:var(--border)"></div></div>
+        <span class="climb-val" style="color:var(--muted)">51%</span>
+      </div>
+      <div class="climb-row">
+        <span class="climb-label">Loss Fix</span>
+        <div class="climb-track"><div class="climb-fill" style="width:54%; background:var(--blue)"></div></div>
+        <span class="climb-val" style="color:var(--blue)">54%</span>
+      </div>
+      <div class="climb-row">
+        <span class="climb-label">+ Dropout</span>
+        <div class="climb-track"><div class="climb-fill" style="width:56%; background:#a78bfa"></div></div>
+        <span class="climb-val" style="color:#a78bfa">56%</span>
+      </div>
+      <div class="climb-row">
+        <span class="climb-label">Final Tune</span>
+        <div class="climb-track"><div class="climb-fill" style="width:58%; background:var(--gold)"></div></div>
+        <span class="climb-val" style="color:var(--gold)">58%</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Final Configuration <span class="sep">|</span> What Got Us to 58%</h2>
+
+    <div class="config-grid">
+      <div class="config-item"><div class="config-key">Learning Rate</div><div class="config-val">1e-4</div></div>
+      <div class="config-item"><div class="config-key">Batch Size</div><div class="config-val">16</div></div>
+      <div class="config-item"><div class="config-key">Epochs</div><div class="config-val">40</div></div>
+      <div class="config-item"><div class="config-key">Dropout</div><div class="config-val">0.5</div></div>
+      <div class="config-item"><div class="config-key">Scheduler Step</div><div class="config-val">5 / γ=0.5</div></div>
+      <div class="config-item"><div class="config-key">Loss Function</div><div class="config-val">CrossEntropy</div></div>
+    </div>
+
+    <pre><span class="cm"># Final locked config — train_cnn.py</span>
+LEARNING_RATE = <span class="st">1e-4</span>
+BATCH_SIZE = <span class="st">16</span>
+EPOCHS = <span class="st">40</span>
+DROPOUT = <span class="st">0.5</span>
+SCHEDULER_STEP = <span class="st">5</span>
+SCHEDULER_GAMMA = <span class="st">0.5</span>
+LOSS = <span class="fn">nn.CrossEntropyLoss</span>()
+CLASSES = [<span class="st">'left'</span>, <span class="st">'right'</span>]  <span class="cm"># Strictly 2-class</span>
+
+<span class="cm"># Best model checkpoint</span>
+<span class="cm"># Saved to: best_thinNet.pth @ epoch 37</span>
+<span class="cm"># Validation Accuracy: 58.0%</span>
+<span class="cm"># Balanced Accuracy:   57.8%</span></pre>
+
+    <div class="contrib-list">
+      <div class="contrib-row">
+        <span class="contrib-num">1</span>
+        <span class="contrib-name">Loss Fix (Wk 8)</span>
+        <div class="contrib-bar-track"><div class="contrib-bar-fill" style="width:75%"></div></div>
+        <span class="contrib-pct">+3%</span>
+      </div>
+      <div class="contrib-row">
+        <span class="contrib-num">2</span>
+        <span class="contrib-name">Dropout 0.5 (Wk 9)</span>
+        <div class="contrib-bar-track"><div class="contrib-bar-fill" style="width:50%"></div></div>
+        <span class="contrib-pct">+2%</span>
+      </div>
+      <div class="contrib-row">
+        <span class="contrib-num">3</span>
+        <span class="contrib-name">LR + Epochs (Wk 10)</span>
+        <div class="contrib-bar-track"><div class="contrib-bar-fill" style="width:37%"></div></div>
+        <span class="contrib-pct">+1.5%</span>
+      </div>
+      <div class="contrib-row">
+        <span class="contrib-num">4</span>
+        <span class="contrib-name">Clean Data (Wk 5)</span>
+        <div class="contrib-bar-track"><div class="contrib-bar-fill" style="width:37%"></div></div>
+        <span class="contrib-pct">~1.5%</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Phase 2 Summary</h2>
+
+    <div class="phase-summary">
+      <p style="font-size:0.88rem; color:var(--text); margin:0;">From a leaky, 6-class experiment with incorrect loss functions and hardcoded architectures — to a clean, modular, 2-class binary classifier achieving 58% validated accuracy on the MoveSep EEG dataset.</p>
+      <div class="summary-stats">
+        <div class="sum-stat"><span class="sum-val">58%</span><span class="sum-label">Final Val Accuracy</span></div>
+        <div class="sum-stat"><span class="sum-val">0</span><span class="sum-label">Data Leakage</span></div>
+        <div class="sum-stat"><span class="sum-val">2</span><span class="sum-label">Architectures Benchmarked</span></div>
+        <div class="sum-stat"><span class="sum-val">6wks</span><span class="sum-label">Dev Block Duration</span></div>
+      </div>
+    </div>
+
+    <div class="next-steps">
+      <div class="next-card">
+        <div class="next-phase">Phase 3 — Next</div>
+        <h3>Domain Adaptation</h3>
+        <p>Cross-session generalization using DANN, MMD, or fine-tuning strategies. The unsolved frontier.</p>
+      </div>
+      <div class="next-card">
+        <div class="next-phase">Deployment</div>
+        <h3>train_generic.py</h3>
+        <p>Unified training script accepting <code>--model thinnet|eegnet</code> flag. Frozen requirements.txt (Torch 2.5.1).</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-id">MI-EEG Project · Week 10 · Phase 2 Complete · February 2026</div>
+    <div class="nav">
+      <a href="week9.html">← Week 9</a>
+      <a href="week6.html">Back to Start</a>
+    </div>
+  </footer>
+</div>
+</body>
+</html>

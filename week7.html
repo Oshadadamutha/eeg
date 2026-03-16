@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Week 7 — Training Pipeline & Randomized Splitting</title>
+
+
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f4ef;
+    --surface: #ffffff;
+    --border: #e0d9d0;
+    --accent: #1a3a5c;
+    --accent2: #c8692a;
+    --green: #1e6642;
+    --text: #1a1410;
+    --muted: #7a7168;
+    --tag-bg: #eae5dc;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    line-height: 1.75;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 28px, rgba(0,0,0,0.025) 28px, rgba(0,0,0,0.025) 29px);
+    pointer-events: none; z-index: 0;
+  }
+  .container { max-width: 920px; margin: 0 auto; padding: 0 44px; position: relative; z-index: 1; }
+  /* ── NAV ── */
+  .nav {
+    display: flex; gap: 5px; flex-wrap: wrap;
+    padding: 28px 0 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 52px;
+  }
+  .nav a {
+    font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 600;
+    letter-spacing: 1.5px; text-transform: uppercase; text-decoration: none;
+    padding: 5px 12px; border-radius: 2px;
+    border: 1px solid var(--border); color: var(--muted);
+    transition: all 0.2s;
+  }
+  .nav a:hover { border-color: var(--accent); color: var(--accent); }
+  .nav a.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <nav class="nav">
+    <a href="week1.html">W1 · Data</a>
+    <a href="week2.html">W2 · Baseline</a>
+    <a href="week3.html">W3 · Architecture</a>
+    <a href="week4.html">W4 · Challenges</a>
+    <a href="week5.html">W5 · Pipeline</a>
+    <a href="week6.html">W6 · thinNet</a>
+    <a href="week7.html" class="active">W7 · Training</a>
+    <a href="week8.html">W8 · 2-Class</a>
+    <a href="week9.html">W9 · Forensics</a>
+    <a href="week10.html">W10 · 58%</a>
+    <a href="week11.html">W11 · Literature</a>
+    <a href="week12.html">W12 · LSTM</a>
+    <a href="week13.html">W13 · Hybrid</a>
+  </nav>
+
+  <header>
+    <span class="week-label">// Week 07 — MI-EEG Project</span>
+    <h1>Training Pipeline<br>& <em>Randomized</em><br>Splitting</h1>
+    <div class="byline">train_cnn.py · Adam · StepLR · Checkpointing · 70/15/15 Split</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01 /</span> The Splitting Decision</h2>
+    <p>The most consequential architectural decision of Week 7 was not about the neural network itself — it was about <em>how we evaluate it</em>. Session-based evaluation had been masking a deeper problem: the model couldn't generalize even within the same recording session.</p>
+
+    <div class="strategy-cards">
+      <div class="strat-card old">
+        <span class="strat-tag">❌ Previous Strategy</span>
+        <h3>Session Split</h3>
+        <p>Train on Sessions 1–2, evaluate on Session 3. Tests cross-session domain adaptation before we've confirmed basic learnability.</p>
+        <div class="strat-result">Result: ~40–45% accuracy (near-chance)</div>
+      </div>
+      <div class="strat-card new">
+        <span class="strat-tag">✓ New Strategy</span>
+        <h3>Randomized 70/15/15</h3>
+        <p>Shuffle all trials across all sessions. Splits 70% train, 15% validation, 15% test. First verify the model can learn at all.</p>
+        <div class="strat-result">Result: Measurable learning signal observed</div>
+      </div>
+    </div>
+
+    <p>This separation of concerns is critical: it decouples the <strong>Learnability Problem</strong> (can the model learn from EEG at all?) from the <strong>Domain Adaptation Problem</strong> (can it generalize across sessions?). We must solve them in order.</p>
+  </section>
+
+  <section>
+    <h2><span class="num">02 /</span> The Training Pipeline</h2>
+
+    <div class="pipeline">
+      <div class="pipe-step">
+        <div class="pipe-num">01</div>
+        <div class="pipe-content">
+          <h3>Adam Optimizer @ 3e-4</h3>
+          <p>Karpathy's Constant — empirically optimal for most deep learning tasks. Adaptive moment estimation handles the sparse EEG gradient landscape.</p>
+        </div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">02</div>
+        <div class="pipe-content">
+          <h3>StepLR Scheduler (step=8, γ=0.5)</h3>
+          <p>Halves the learning rate every 8 epochs. This "annealing" drives the model into sharper loss minima as training matures.</p>
+        </div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">03</div>
+        <div class="pipe-content">
+          <h3>Validation Monitoring</h3>
+          <p>Validation accuracy is computed every epoch. Tracks generalization — not just training fit — in real time.</p>
+        </div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">04</div>
+        <div class="pipe-content">
+          <h3>Best-Model Checkpointing</h3>
+          <p>Saves <code>best_thinNet.pth</code> only when val_acc improves. Prevents the "Last Epoch Bias" from late-stage overfitting.</p>
+        </div>
+      </div>
+    </div>
+
+    <pre><span class="cm"># train_cnn.py — Core training loop</span>
+optimizer = optim.Adam(model.parameters(), lr=<span class="num">3e-4</span>)
+scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=<span class="num">8</span>, gamma=<span class="num">0.5</span>)
+best_val_acc = <span class="num">0.0</span>
+
+<span class="kw">for</span> epoch <span class="kw">in</span> <span class="fn">range</span>(EPOCHS):
+    model.<span class="fn">train</span>()
+    <span class="kw">for</span> X, y <span class="kw">in</span> train_loader:
+        optimizer.<span class="fn">zero_grad</span>()
+        loss = criterion(model(X), y)
+        loss.<span class="fn">backward</span>()
+        optimizer.<span class="fn">step</span>()
+
+    val_acc = <span class="fn">evaluate</span>(model, val_loader)
+    <span class="kw">if</span> val_acc > best_val_acc:
+        best_val_acc = val_acc
+        torch.<span class="fn">save</span>(model.state_dict(), <span class="num">'best_thinNet.pth'</span>)
+    scheduler.<span class="fn">step</span>()</pre>
+  </section>
+
+  <section>
+    <h2><span class="num">03 /</span> Limitations Identified</h2>
+    <div class="callout">
+      <div class="callout-title">⚠ Known Issue — Loss Function Mismatch</div>
+      <p>During Week 7 testing, a critical inconsistency was identified: <code>thinNet</code> outputs <strong>raw logits</strong>, but <code>train_cnn.py</code> applies <code>NLLLoss</code>, which mathematically requires <strong>log-probabilities</strong> (the output of <code>LogSoftmax</code>). While PyTorch's numerical stability mechanisms prevent training from completely breaking down, the gradient signal is theoretically incorrect. This mismatch is scheduled for resolution in Week 8 by replacing <code>NLLLoss</code> with <code>CrossEntropyLoss</code>, which handles the softmax internally.</p>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-note">MI-EEG Project · Week 07 · February 2026</div>
+    <div class="nav">
+      <a href="week6.html">← Week 6</a>
+      <a href="week8.html">Week 8 →</a>
+    </div>
+  </footer>
+</div>
+</body>
+</html>

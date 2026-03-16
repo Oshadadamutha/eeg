@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Week 9 — Visual Forensics & Hyperparameter Tuning</title>
+
+
+<script>
+  // Generate EEG-like waveform paths
+  function generateWave(seed, amplitude, noise) {
+    let path = 'M 0 14 ';
+    let y = 14;
+    for (let x = 0; x <= 100; x += 2) {
+      y = 14 + amplitude * Math.sin((x + seed) * 0.3) * Math.sin((x + seed * 0.7) * 0.1)
+        + (Math.random() - 0.5) * noise;
+      path += `L ${x}% ${Math.max(2, Math.min(26, y))} `;
+    }
+    return path;
+  }
+
+  // Generate heatmap colors
+  function heatColor(v) {
+    if (v < 0.3) return `hsl(220,60%,${30+v*80}%)`;
+    if (v < 0.6) return `hsl(${220-v*180},60%,50%)`;
+    return `hsl(${40-v*20},80%,${30+v*30}%)`;
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    // Generate waveforms
+    const classes = ['C3 (Left MI)', 'C4 (Right MI)', 'Cz (Midline)', 'F3', 'F4', 'P3'];
+    const waves = document.querySelectorAll('.ch-wave');
+    waves.forEach((w, i) => {
+      const amp = i < 2 ? 5 : 2;
+      const noise = i < 2 ? 1.5 : 3;
+      const path = w.querySelector('path');
+      if (path) path.setAttribute('d', generateWave(i * 37, amp, noise));
+    });
+
+    // Generate heatmap
+    const cells = document.querySelectorAll('.hm-cell');
+    cells.forEach((c, i) => {
+      const row = Math.floor(i / 20);
+      const col = i % 20;
+      let v;
+      if (row < 2) v = Math.random() * 0.3 + col * 0.015;
+      else if (row < 5) v = 0.4 + Math.sin(col * 0.5 + row) * 0.3 + Math.random() * 0.1;
+      else v = 0.3 + Math.random() * 0.4;
+      c.style.background = heatColor(v);
+    });
+  });
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f4ef;
+    --surface: #ffffff;
+    --border: #e0d9d0;
+    --accent: #1a3a5c;
+    --accent2: #c8692a;
+    --green: #1e6642;
+    --text: #1a1410;
+    --muted: #7a7168;
+    --tag-bg: #eae5dc;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    line-height: 1.75;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 28px, rgba(0,0,0,0.025) 28px, rgba(0,0,0,0.025) 29px);
+    pointer-events: none; z-index: 0;
+  }
+  .container { max-width: 920px; margin: 0 auto; padding: 0 44px; position: relative; z-index: 1; }
+  /* ── NAV ── */
+  .nav {
+    display: flex; gap: 5px; flex-wrap: wrap;
+    padding: 28px 0 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 52px;
+  }
+  .nav a {
+    font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 600;
+    letter-spacing: 1.5px; text-transform: uppercase; text-decoration: none;
+    padding: 5px 12px; border-radius: 2px;
+    border: 1px solid var(--border); color: var(--muted);
+    transition: all 0.2s;
+  }
+  .nav a:hover { border-color: var(--accent); color: var(--accent); }
+  .nav a.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <nav class="nav">
+    <a href="week1.html">W1 · Data</a>
+    <a href="week2.html">W2 · Baseline</a>
+    <a href="week3.html">W3 · Architecture</a>
+    <a href="week4.html">W4 · Challenges</a>
+    <a href="week5.html">W5 · Pipeline</a>
+    <a href="week6.html">W6 · thinNet</a>
+    <a href="week7.html">W7 · Training</a>
+    <a href="week8.html">W8 · 2-Class</a>
+    <a href="week9.html" class="active">W9 · Forensics</a>
+    <a href="week10.html">W10 · 58%</a>
+    <a href="week11.html">W11 · Literature</a>
+    <a href="week12.html">W12 · LSTM</a>
+    <a href="week13.html">W13 · Hybrid</a>
+  </nav>
+
+  <header>
+    <div class="header-left">
+      <span class="week-badge">Week 09</span>
+      <h1>Visual <em>Forensics</em><br>& Hyperparameter<br>Tuning</h1>
+    </div>
+    <div class="header-right">
+      MI-EEG Project<br>
+      visualize_cnn_input_per_file.py<br>
+      Target: ≥ 55% val accuracy
+    </div>
+  </header>
+
+  <section>
+    <h2>Input Verification — What Is the Network Seeing?</h2>
+    <p>Before tuning hyperparameters, we must verify data quality. The visualization pipeline generates per-trial heatmaps of the normalized EEG tensor <code>(Channels × Time)</code>, allowing visual inspection for artifacts that may have survived preprocessing.</p>
+
+    <div class="waveform-panel">
+      <div class="waveform-title">EEG Channel Waveforms — Z-Scored Input (Left vs Right MI Trial)</div>
+      <div class="channel-rows">
+        <div class="channel-row">
+          <span class="ch-label">C3</span>
+          <div class="ch-wave wave-left"><svg viewBox="0 0 100 28" preserveAspectRatio="none"><path d=""/></svg></div>
+        </div>
+        <div class="channel-row">
+          <span class="ch-label">C4</span>
+          <div class="ch-wave wave-right"><svg viewBox="0 0 100 28" preserveAspectRatio="none"><path d=""/></svg></div>
+        </div>
+        <div class="channel-row">
+          <span class="ch-label">Cz</span>
+          <div class="ch-wave wave-other"><svg viewBox="0 0 100 28" preserveAspectRatio="none"><path d=""/></svg></div>
+        </div>
+        <div class="channel-row">
+          <span class="ch-label">F3</span>
+          <div class="ch-wave wave-other"><svg viewBox="0 0 100 28" preserveAspectRatio="none"><path d=""/></svg></div>
+        </div>
+        <div class="channel-row">
+          <span class="ch-label">F4</span>
+          <div class="ch-wave wave-other"><svg viewBox="0 0 100 28" preserveAspectRatio="none"><path d=""/></svg></div>
+        </div>
+      </div>
+      <div class="waveform-legend">
+        <div class="legend-item"><div class="legend-line" style="background:var(--accent)"></div>Left MI — C3 ERD (right hemisphere)</div>
+        <div class="legend-item"><div class="legend-line" style="background:var(--blue)"></div>Right MI — C4 ERD (left hemisphere)</div>
+      </div>
+    </div>
+
+    <div class="insight-row">
+      <div class="insight">
+        <h3>Dead Channel Detection</h3>
+        <p>Flat lines (amplitude near zero across all time points) indicate disconnected electrodes that should be excluded from training.</p>
+      </div>
+      <div class="insight">
+        <h3>Normalization Check</h3>
+        <p>Z-scored channels should lie within [-3, +3]. Values beyond ±4 indicate unfiltered eye blink or muscle artifacts.</p>
+      </div>
+      <div class="insight">
+        <h3>Contralateral ERD</h3>
+        <p>Left-hand MI should show desynchronization at C4, Right-hand MI at C3. Confirming this spatial pattern validates the data labels.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Hyperparameter Tuning Strategy</h2>
+    <p>Having fixed the loss function in Week 8 and confirmed data quality via visual inspection, Week 9 runs a structured sweep over key training hyperparameters. Each axis is varied independently to isolate its effect on validation accuracy.</p>
+
+    <table class="tuning-table">
+      <thead>
+        <tr>
+          <th>Parameter</th>
+          <th>Baseline</th>
+          <th>Range Tested</th>
+          <th>Best Value</th>
+          <th>Reason</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Learning Rate</strong></td>
+          <td>3e-4</td>
+          <td>[1e-4, 3e-4, 5e-4]</td>
+          <td><span class="tag best">1e-4</span></td>
+          <td>Lower LR → finer convergence on binary task</td>
+        </tr>
+        <tr>
+          <td><strong>Batch Size</strong></td>
+          <td>32</td>
+          <td>[16, 32, 64]</td>
+          <td><span class="tag best">16</span></td>
+          <td>Smaller batches → noisier, better generalization</td>
+        </tr>
+        <tr>
+          <td><strong>StepLR step_size</strong></td>
+          <td>8</td>
+          <td>[5, 8, 12]</td>
+          <td><span class="tag best">5</span></td>
+          <td>More aggressive decay helps escape plateaus</td>
+        </tr>
+        <tr>
+          <td><strong>Dropout Rate</strong></td>
+          <td>None</td>
+          <td>[0.25, 0.5]</td>
+          <td><span class="tag best">0.5</span></td>
+          <td>Regularization critical for small EEG datasets</td>
+        </tr>
+        <tr>
+          <td><strong>Epochs</strong></td>
+          <td>25</td>
+          <td>[30, 40, 50]</td>
+          <td><span class="tag best">40</span></td>
+          <td>More epochs + early stopping avoids overfit</td>
+        </tr>
+        <tr>
+          <td><strong>Loss Function</strong></td>
+          <td><span class="tag note">NLLLoss ✗</span></td>
+          <td>CrossEntropyLoss</td>
+          <td><span class="tag best">CrossEntropy</span></td>
+          <td>Fixed in Week 8 — retains correction here</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <pre><span class="cm"># Updated thinNet — adding dropout regularization</span>
+<span class="kw">class</span> <span class="fn">thinNet</span>(nn.Module):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, num_classes=<span class="st">2</span>, dropout=<span class="st">0.5</span>):
+        <span class="fn">super</span>().__init__()
+        self.dropout = nn.Dropout(p=dropout)
+        self.classifier = <span class="kw">None</span>
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self, x):
+        x = self.temporal(x)
+        x = self.spatial(x)
+        x = x.<span class="fn">flatten</span>(<span class="st">1</span>)
+        x = self.<span class="fn">dropout</span>(x)  <span class="cm"># ← Added: prevents memorizing noise</span>
+        <span class="kw">if</span> self.classifier <span class="kw">is</span> <span class="kw">None</span>:
+            self.classifier = nn.<span class="fn">Linear</span>(x.shape[<span class="st">1</span>], self.num_classes).to(x.device)
+        <span class="kw">return</span> self.<span class="fn">classifier</span>(x)</pre>
+  </section>
+
+  <section>
+    <h2>Feature Map Visualization — Are Filters Learning ERD?</h2>
+    <p>Hooking into <code>model.temporal</code> after the first conv layer, we can visualize what the 1×31 filters have learned to detect. For Motor Imagery classification to work, these filters must behave as bandpass filters in the 8–30Hz range (Mu and Beta bands).</p>
+    <p>The heatmap below represents activation intensity across channels (rows) and time (columns) for a typical Left-hand MI trial. Red regions indicate high activation from the temporal filters:</p>
+
+    <div class="heatmap-container">
+      <div class="heatmap-yaxis">
+        <span>C3</span><span>C4</span><span>Cz</span><span>F3</span><span>F4</span><span>P3</span><span>P4</span><span>Oz</span>
+      </div>
+      <div>
+        <div class="heatmap-grid">
+          <!-- 160 cells generated by JS -->
+          <div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div>
+          <div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div>
+          <div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div>
+          <div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div>
+          <div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div>
+          <div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div>
+          <div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div>
+          <div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div>
+          <div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div>
+          <div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div>
+          <div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div>
+          <div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div>
+          <div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div>
+          <div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div>
+          <div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div>
+          <div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div>
+          <div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div>
+          <div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div>
+          <div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div>
+          <div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div>
+          <div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div>
+          <div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div>
+          <div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div>
+          <div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div>
+          <div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div>
+          <div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div>
+          <div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div>
+          <div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div>
+          <div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div>
+          <div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div>
+          <div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div><div class="hm-cell"></div>
+          <div class="hm-cell"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="target-banner">
+      <div class="target-text">Week 9 End Target</div>
+      <div class="target-val">≥ 55%</div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-note">MI-EEG Project · Week 09 · February 2026</div>
+    <div class="nav">
+      <a href="week8.html">← Week 8</a>
+      <a href="week10.html">Week 10 →</a>
+    </div>
+  </footer>
+</div>
+</body>
+</html>

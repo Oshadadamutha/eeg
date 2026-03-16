@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Week 1 — Data Ingestion | MI-EEG Portfolio</title>
+
+
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f4ef;
+    --surface: #ffffff;
+    --border: #e0d9d0;
+    --accent: #1a3a5c;
+    --accent2: #c8692a;
+    --green: #1e6642;
+    --text: #1a1410;
+    --muted: #7a7168;
+    --tag-bg: #eae5dc;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    line-height: 1.75;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 28px, rgba(0,0,0,0.025) 28px, rgba(0,0,0,0.025) 29px);
+    pointer-events: none; z-index: 0;
+  }
+  .container { max-width: 920px; margin: 0 auto; padding: 0 44px; position: relative; z-index: 1; }
+  /* ── NAV ── */
+  .nav {
+    display: flex; gap: 5px; flex-wrap: wrap;
+    padding: 28px 0 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 52px;
+  }
+  .nav a {
+    font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 600;
+    letter-spacing: 1.5px; text-transform: uppercase; text-decoration: none;
+    padding: 5px 12px; border-radius: 2px;
+    border: 1px solid var(--border); color: var(--muted);
+    transition: all 0.2s;
+  }
+  .nav a:hover { border-color: var(--accent); color: var(--accent); }
+  .nav a.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <nav class="nav">
+    <a href="week1.html" class="active">W1 · Data</a>
+    <a href="week2.html">W2 · Baseline</a>
+    <a href="week3.html">W3 · Architecture</a>
+    <a href="week4.html">W4 · Challenges</a>
+    <a href="week5.html">W5 · Pipeline</a>
+    <a href="week6.html">W6 · thinNet</a>
+    <a href="week7.html">W7 · Training</a>
+    <a href="week8.html">W8 · 2-Class</a>
+    <a href="week9.html">W9 · Forensics</a>
+    <a href="week10.html">W10 · 58%</a>
+    <a href="week11.html">W11 · Literature</a>
+    <a href="week12.html">W12 · LSTM</a>
+    <a href="week13.html">W13 · Hybrid</a>
+  </nav>
+
+
+  <header class="header">
+    <div class="week-badge">Week 01 · Phase 1</div>
+    <h1>Taming High-Dimensional<br><span>Bio-Signals</span></h1>
+    <div class="tagline">Building the EEG Data Ingestion Pipeline</div>
+  </header>
+
+  <!-- Section 1 -->
+  <div class="section">
+    <h2><span class="num">01</span> The Challenge: Raw Physiological Data</h2>
+    <p>The foundation of any deep learning project is data, but in <strong>Brain-Computer Interfaces (BCI)</strong>, data doesn't come in neat JPEGs or CSVs. This project begins with the <strong>MindBigData EPOH dataset</strong> — a massive collection of brain signals recorded during 6 distinct motor imagery tasks: imagining moving a hand <em>Left, Right, Up, Down, Forward,</em> and <em>Backward</em>.</p>
+    <p>The raw data is stored in MATLAB's complex HDF5-based <code>.mat</code> (v7.3) format. The first challenge was bridging this scientific engineering format and a PyTorch-ready tensor pipeline with no data loss and minimal memory overhead.</p>
+  </div>
+
+  <!-- Section 2: Tensor transformation -->
+  <div class="section">
+    <h2><span class="num">02</span> Technical Deep Dive: Tensor Transformation</h2>
+    <p>Raw EEG data for a single subject contains <strong>60 electrodes</strong> recording at <strong>500Hz</strong> for roughly 5 seconds per trial — 30,000 values per sample. A key architectural decision was made early: treat EEG signals as "images" to leverage 2D Convolutional Neural Networks.</p>
+
+    <div class="shape-flow">
+      <div>
+        <div class="shape-box">
+          <div class="lbl">Raw Input</div>
+          <div class="dims">(N, 2500, 60)</div>
+        </div>
+      </div>
+      <div class="shape-arrow">→</div>
+      <div>
+        <div class="shape-box">
+          <div class="lbl">After Channel Select</div>
+          <div class="dims">(N, 2500, 12)</div>
+        </div>
+      </div>
+      <div class="shape-arrow">→</div>
+      <div>
+        <div class="shape-box">
+          <div class="lbl">After Transpose</div>
+          <div class="dims">(N, 12, 2500)</div>
+        </div>
+      </div>
+      <div class="shape-arrow">→</div>
+      <div>
+        <div class="shape-box">
+          <div class="lbl">Conv2d Ready</div>
+          <div class="dims">(N, 1, 12, 2500)</div>
+        </div>
+      </div>
+    </div>
+
+    <p>Instead of feeding all 60 noisy channels, a <strong>feature selection</strong> step based on domain knowledge keeps only the 12 electrodes over the <em>sensorimotor cortex</em> — the region responsible for motor imagery.</p>
+
+    <div class="ch-grid">
+      <div class="ch-chip">Cz <div class="ch-sub">Central</div></div>
+      <div class="ch-chip">C1 <div class="ch-sub">Left</div></div>
+      <div class="ch-chip">C2 <div class="ch-sub">Right</div></div>
+      <div class="ch-chip">C3 <div class="ch-sub">Motor L</div></div>
+      <div class="ch-chip">C4 <div class="ch-sub">Motor R</div></div>
+      <div class="ch-chip">CPz <div class="ch-sub">Parietal</div></div>
+      <div class="ch-chip">CP1 <div class="ch-sub">Parietal L</div></div>
+      <div class="ch-chip">CP2 <div class="ch-sub">Parietal R</div></div>
+      <div class="ch-chip">CP3 <div class="ch-sub">CP Left</div></div>
+      <div class="ch-chip">CP4 <div class="ch-sub">CP Right</div></div>
+      <div class="ch-chip">FC1 <div class="ch-sub">Frontal L</div></div>
+      <div class="ch-chip">FC2 <div class="ch-sub">Frontal R</div></div>
+    </div>
+  </div>
+
+  <!-- Section 3: Code -->
+  <div class="section">
+    <h2><span class="num">03</span> Implementation: dataLoaderNew.py</h2>
+    <p>A custom <code>Dataset</code> class uses <code>h5py</code> to parse binary MATLAB files without loading the entire dataset into RAM — critical for large EEG recordings.</p>
+
+    <div class="code-block">
+      <div class="code-top">
+        <span>dataLoaderNew.py</span>
+        <span class="tag">PyTorch Dataset</span>
+      </div>
+      <pre><span class="cm"># Channel Selection: Sensorimotor Cortex only</span>
+SELECTED_CHANNELS = [
+    <span class="num">17</span>, <span class="num">16</span>, <span class="num">42</span>, <span class="num">15</span>, <span class="num">43</span>, <span class="num">22</span>,  <span class="cm"># Cz, C1, C2, C3, C4, CPz</span>
+    <span class="num">21</span>, <span class="num">46</span>, <span class="num">20</span>, <span class="num">47</span>, <span class="num">12</span>, <span class="num">38</span>   <span class="cm"># CP1, CP2, CP3, CP4, FC1, FC2</span>
+]
+
+<span class="kw">class</span> <span class="fn">EEGMotorImageryDataset</span>(Dataset):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, mat_path, class_name):
+        <span class="cm"># HDF5 ingestion — memory-efficient disk access</span>
+        <span class="kw">with</span> h5py.<span class="fn">File</span>(mat_path, <span class="str">'r'</span>) <span class="kw">as</span> f:
+            X = np.<span class="fn">array</span>(f[<span class="str">'data_struct'</span>][class_name])
+
+        <span class="cm"># Reduce noise: select 12 motor cortex channels</span>
+        X = X[:, :, SELECTED_CHANNELS]
+
+        <span class="cm"># Reshape for Conv2d: (N, Time, Ch) → (N, 1, Ch, Time)</span>
+        X = X.<span class="fn">transpose</span>(<span class="num">0</span>, <span class="num">2</span>, <span class="num">1</span>)   <span class="cm"># Swap Time ↔ Channels</span>
+        X = X[:, <span class="kw">None</span>, :, :]        <span class="cm"># Add "color" dim → (N, 1, 12, 2500)</span>
+
+        self.X = torch.<span class="fn">tensor</span>(X, dtype=torch.float32)</pre>
+    </div>
+  </div>
+
+  <!-- Outcome -->
+  <div class="outcome">
+    <div class="outcome-icon">📡</div>
+    <div>
+      <h3>Week 1 Outcome</h3>
+      <p>A robust ingestion engine is in place. The pipeline reduced input data volume by <strong>80%</strong> (dropping 48 irrelevant channels) while preserving the critical sensorimotor signal. This significantly speeds up all downstream training iterations and sets a clean foundation for architecture experiments in Week 2.</p>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <span>MI-EEG · Oshada Damutha · University of Peradeniya</span>
+    <div class="footer-nav">
+      <a href="index.html">← Home</a>
+      <a href="week2.html">Week 2 →</a>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Week 5 — Data Hygiene & Advanced Preprocessing</title>
+<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Playfair+Display:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e1117;
+    --surface: #161b25;
+    --panel: #1c2333;
+    --accent: #e05252;
+    --teal: #3ecfcf;
+    --yellow: #f0d060;
+    --text: #dce4f0;
+    --muted: #607080;
+    --border: #232d3f;
+    --success: #50c878;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Courier Prime', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Blueprint grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(62,207,207,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(62,207,207,0.04) 1px, transparent 1px),
+      linear-gradient(rgba(62,207,207,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(62,207,207,0.02) 1px, transparent 1px);
+    background-size: 80px 80px, 80px 80px, 16px 16px, 16px 16px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container { max-width: 880px; margin: 0 auto; padding: 0 36px; position: relative; z-index: 1; }
+
+  header {
+    padding: 60px 0 36px;
+    border-bottom: 1px solid var(--border);
+  }
+  .week-line {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .week-num {
+    font-size: 0.7rem;
+    letter-spacing: 4px;
+    color: var(--teal);
+    text-transform: uppercase;
+  }
+  .week-line::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, var(--teal), transparent);
+    opacity: 0.3;
+  }
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2.4rem, 5.5vw, 4rem);
+    font-weight: 900;
+    line-height: 1.05;
+    letter-spacing: -1px;
+  }
+  h1 .danger { color: var(--accent); }
+  h1 .safe { color: var(--teal); }
+  .header-desc {
+    margin-top: 14px;
+    font-size: 0.8rem;
+    color: var(--muted);
+    max-width: 520px;
+    line-height: 1.7;
+  }
+
+  section { padding: 36px 0; border-bottom: 1px solid var(--border); }
+  h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  h2 .tag {
+    font-family: 'Courier Prime', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 2px;
+    color: var(--teal);
+    padding: 3px 8px;
+    border: 1px solid var(--teal);
+    opacity: 0.6;
+  }
+
+  p { line-height: 1.8; color: #8a9ab8; margin-bottom: 14px; font-size: 0.87rem; }
+
+  /* Leakage diagram */
+  .leakage-diagram {
+    margin: 24px 0;
+    display: grid;
+    grid-template-columns: 1fr 60px 1fr;
+    gap: 0;
+    align-items: stretch;
+  }
+  .leak-side {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 20px;
+  }
+  .leak-side.bad { border-color: rgba(224,82,82,0.4); }
+  .leak-side.good { border-color: rgba(62,207,207,0.4); }
+  .leak-tag {
+    font-size: 0.65rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    display: block;
+  }
+  .leak-side.bad .leak-tag { color: var(--accent); }
+  .leak-side.good .leak-tag { color: var(--teal); }
+  .leak-side h3 { font-size: 0.95rem; margin-bottom: 10px; font-family: 'Playfair Display', serif; }
+  .leak-side p { font-size: 0.78rem; color: var(--muted); margin: 0; }
+  .leak-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    font-size: 1.5rem;
+    color: var(--yellow);
+  }
+
+  /* Data flow chart */
+  .flow-chart {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 28px;
+    margin: 20px 0;
+  }
+  .flow-title {
+    font-size: 0.68rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+  .flow-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .flow-step {
+    display: grid;
+    grid-template-columns: 120px 20px 1fr;
+    align-items: center;
+    gap: 12px;
+  }
+  .flow-phase {
+    font-size: 0.68rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-align: right;
+    color: var(--muted);
+  }
+  .flow-connector { color: var(--border); font-size: 0.8rem; text-align: center; }
+  .flow-action {
+    padding: 10px 16px;
+    font-size: 0.82rem;
+    border: 1px solid var(--border);
+    background: var(--panel);
+  }
+  .flow-action.highlight { border-color: var(--teal); color: var(--teal); }
+  .flow-action.danger { border-color: rgba(224,82,82,0.4); color: var(--accent); }
+
+  /* Stats bar */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2px;
+    margin: 20px 0;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .stat-cell {
+    background: var(--panel);
+    padding: 20px 16px;
+    text-align: center;
+  }
+  .stat-cell:first-child { border-left: 3px solid var(--teal); }
+  .stat-n {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.8rem;
+    font-weight: 900;
+    color: var(--teal);
+    display: block;
+    line-height: 1;
+  }
+  .stat-l { font-size: 0.65rem; color: var(--muted); margin-top: 4px; letter-spacing: 1px; text-transform: uppercase; }
+
+  /* Code */
+  pre {
+    background: #0a0d14;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--teal);
+    padding: 20px;
+    font-size: 0.78rem;
+    line-height: 1.75;
+    overflow-x: auto;
+    margin: 14px 0;
+    color: #7890a8;
+  }
+  .kw { color: #c878f0; }
+  .fn { color: var(--teal); }
+  .st { color: var(--yellow); }
+  .cm { color: #304050; }
+  .ok { color: var(--success); }
+
+  /* Transposition visual */
+  .transposition {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin: 20px 0;
+    padding: 20px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+  }
+  .tensor-box {
+    flex: 1;
+    border: 1px solid var(--border);
+    padding: 14px;
+    text-align: center;
+    background: var(--surface);
+  }
+  .tensor-label { font-size: 0.7rem; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+  .tensor-dims {
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    font-weight: 700;
+  }
+  .tensor-box.before .tensor-dims { color: var(--accent); }
+  .tensor-box.after .tensor-dims { color: var(--success); }
+  .tensor-reason { font-size: 0.7rem; color: var(--muted); margin-top: 6px; }
+  .trans-arrow { font-size: 1.5rem; color: var(--yellow); }
+
+  /* Outcome cards */
+  .outcomes { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
+  .outcome {
+    padding: 20px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+  }
+  .outcome.negative { border-top: 3px solid var(--accent); }
+  .outcome.positive { border-top: 3px solid var(--success); }
+  .outcome h3 { font-size: 0.88rem; margin-bottom: 8px; }
+  .outcome.negative h3 { color: var(--accent); }
+  .outcome.positive h3 { color: var(--success); }
+  .outcome p { font-size: 0.78rem; color: var(--muted); margin: 0; line-height: 1.6; }
+
+  footer {
+    padding: 32px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .footer-id { font-size: 0.7rem; color: var(--muted); }
+  .nav { display: flex; gap: 10px; }
+  .nav a {
+    font-size: 0.72rem;
+    color: var(--muted);
+    text-decoration: none;
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    transition: all 0.2s;
+  }
+  .nav a:hover { color: var(--teal); border-color: var(--teal); }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="week-line">
+      <span class="week-num">// Week 05 · MI-EEG Project</span>
+    </div>
+    <h1>Data <span class="danger">Hygiene</span><br>& <span class="safe">Advanced</span><br>Preprocessing</h1>
+    <div class="header-desc">Solving statistical leakage, implementing fit-on-train normalization, and establishing a leakage-free preprocessing pipeline as the foundation for all subsequent model training.</div>
+  </header>
+
+  <section>
+    <h2>The Leakage Problem <span class="tag">Critical</span></h2>
+    <p>Statistical leakage is the most insidious bug in machine learning pipelines. When Z-score normalization statistics (mean μ and standard deviation σ) are computed across the <em>entire dataset</em> before the train/test split, the model implicitly learns about the test distribution. Evaluation metrics appear artificially high — a false victory that collapses at deployment.</p>
+
+    <div class="leakage-diagram">
+      <div class="leak-side bad">
+        <span class="leak-tag">❌ Weeks 1–4 (Broken)</span>
+        <h3>Global Normalization</h3>
+        <p>Compute μ, σ on ALL data including test set. Test data "leaks" into normalization. Model implicitly knows test distribution. Metrics are dishonestly optimistic.</p>
+      </div>
+      <div class="leak-arrow">⟶</div>
+      <div class="leak-side good">
+        <span class="leak-tag">✓ Week 5 (Fixed)</span>
+        <h3>Train-Only Stats</h3>
+        <p>Compute μ, σ using ONLY training data. Apply same transform to val/test. Zero look-ahead bias. If test data has different scale, model must handle it robustly — reflecting reality.</p>
+      </div>
+    </div>
+
+    <div class="stats-bar">
+      <div class="stat-cell"><span class="stat-n">0</span><span class="stat-l">Leakage Sources</span></div>
+      <div class="stat-cell"><span class="stat-n">2</span><span class="stat-l">Classes (Left/Right)</span></div>
+      <div class="stat-cell"><span class="stat-n">h5py</span><span class="stat-l">Data Access</span></div>
+      <div class="stat-cell"><span class="stat-n">v7.3</span><span class="stat-l">MATLAB Format</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Implementation: eeg_dataloader_normalized.py <span class="tag">Code</span></h2>
+    <p>The solution is a two-phase pipeline: first compute statistics using only the training directory, then apply those frozen statistics to all splits. The <code>compute_train_stats</code> function encapsulates this critical boundary.</p>
+
+    <div class="flow-chart">
+      <div class="flow-title">// Data Pipeline — Fit on Train, Transform All</div>
+      <div class="flow-steps">
+        <div class="flow-step">
+          <span class="flow-phase">Step 1</span>
+          <span class="flow-connector">→</span>
+          <div class="flow-action highlight">Iterate ONLY through /Train directory</div>
+        </div>
+        <div class="flow-step">
+          <span class="flow-phase">Step 2</span>
+          <span class="flow-connector">→</span>
+          <div class="flow-action highlight">Compute channel-wise μ, σ → freeze these stats</div>
+        </div>
+        <div class="flow-step">
+          <span class="flow-phase">Step 3</span>
+          <span class="flow-connector">→</span>
+          <div class="flow-action">Apply frozen μ, σ to /Train → Z-scored train set</div>
+        </div>
+        <div class="flow-step">
+          <span class="flow-phase">Step 4</span>
+          <span class="flow-connector">→</span>
+          <div class="flow-action">Apply same frozen μ, σ to /Val → Z-scored val set</div>
+        </div>
+        <div class="flow-step">
+          <span class="flow-phase">Step 5</span>
+          <span class="flow-connector">→</span>
+          <div class="flow-action">Apply same frozen μ, σ to /Test → Z-scored test set</div>
+        </div>
+      </div>
+    </div>
+
+    <pre><span class="kw">def</span> <span class="fn">compute_train_stats</span>(train_folder):
+    <span class="st">"""
+    Compute channel-wise mean and std using ONLY TRAIN data.
+    This guarantees zero leakage into validation/test sets.
+    """</span>
+    all_data = []
+    <span class="kw">for</span> fname <span class="kw">in</span> os.<span class="fn">listdir</span>(train_folder):
+        <span class="kw">if</span> fname.<span class="fn">endswith</span>(<span class="st">'.mat'</span>):
+            <span class="kw">with</span> h5py.<span class="fn">File</span>(os.path.<span class="fn">join</span>(train_folder, fname), <span class="st">'r'</span>) <span class="kw">as</span> f:
+                <span class="kw">for</span> key <span class="kw">in</span> [<span class="st">'left'</span>, <span class="st">'right'</span>]:
+                    data = np.<span class="fn">array</span>(f[key])  <span class="cm"># (Trials, Time, Channels)</span>
+                    data = data.<span class="fn">transpose</span>(<span class="st">0</span>, <span class="st">2</span>, <span class="st">1</span>)  <span class="cm"># → (Trials, Channels, Time)</span>
+                    all_data.<span class="fn">append</span>(data)
+
+    all_data = np.<span class="fn">concatenate</span>(all_data, axis=<span class="st">0</span>)
+    mean = all_data.<span class="fn">mean</span>(axis=(<span class="st">0</span>, <span class="st">2</span>))  <span class="cm"># shape: (Channels,)</span>
+    std  = all_data.<span class="fn">std</span>(axis=(<span class="st">0</span>, <span class="st">2</span>))   <span class="cm"># shape: (Channels,)</span>
+    <span class="kw">return</span> mean, std  <span class="ok"># ← Frozen. Never recalculated.</span></pre>
+  </section>
+
+  <section>
+    <h2>HDF5 Ingestion & Dimensional Transposition <span class="tag">Engineering</span></h2>
+    <p>Raw data arrives in MATLAB v7.3 format (accessed via <code>h5py</code>) with a dimensional ordering that is incompatible with PyTorch's convolutional layer expectations. A mandatory transposition step corrects this at load time.</p>
+
+    <div class="transposition">
+      <div class="tensor-box before">
+        <div class="tensor-label">Raw from .mat file</div>
+        <div class="tensor-dims">(Trials, Time, Channels)</div>
+        <div class="tensor-reason">MATLAB convention: time as primary axis</div>
+      </div>
+      <div class="trans-arrow">⟶</div>
+      <div class="tensor-box after">
+        <div class="tensor-label">PyTorch Conv2d format</div>
+        <div class="tensor-dims">(Trials, Channels, Time)</div>
+        <div class="tensor-reason">N, C, H, W — channel must be dim 1</div>
+      </div>
+    </div>
+
+    <pre><span class="cm"># HDF5 loading with correct transposition</span>
+<span class="kw">with</span> h5py.<span class="fn">File</span>(filepath, <span class="st">'r'</span>) <span class="kw">as</span> f:
+    data = np.<span class="fn">array</span>(f[class_key])         <span class="cm"># (Trials, Time, Channels)</span>
+    data = data.<span class="fn">transpose</span>(<span class="st">0</span>, <span class="st">2</span>, <span class="st">1</span>)       <span class="ok"># → (Trials, Channels, Time) ✓</span>
+    data = data[:, np.newaxis, :, :]         <span class="ok"># → (Trials, 1, Channels, Time) ✓</span>
+
+<span class="cm"># Z-score normalization using frozen train stats</span>
+data = (data - mean[np.newaxis, np.newaxis, :, np.newaxis]) / \
+        (std[np.newaxis, np.newaxis, :, np.newaxis] + <span class="st">1e-8</span>)</pre>
+  </section>
+
+  <section>
+    <h2>Outcome: Drop-then-Stabilize Effect <span class="tag">Result</span></h2>
+    <p>The immediate effect of removing leakage was a drop in reported accuracy — not because the model got worse, but because previous metrics were dishonest. After implementing the correct pipeline, accuracy stabilized at its true baseline, providing a valid foundation for all future improvements.</p>
+
+    <div class="outcomes">
+      <div class="outcome negative">
+        <h3>Initial Impact — Accuracy Drop</h3>
+        <p>Previously inflated "cheating" accuracy dropped when test leakage was removed. This initially appears negative but is the correct outcome — it reveals the true difficulty of the task.</p>
+      </div>
+      <div class="outcome positive">
+        <h3>Long-term Benefit — Valid Benchmarking</h3>
+        <p>Every accuracy number from Week 5 onwards represents genuine generalization capability. Improvements in later weeks (Weeks 8–10) are now trustworthy and attributable to specific architectural decisions.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-id">MI-EEG Project · Week 05 · February 2026</div>
+    <div class="nav">
+      <a href="week6.html">Week 6 →</a>
+      <a href="week10.html">Week 10 →</a>
+    </div>
+  </footer>
+</div>
+</body>
+</html>

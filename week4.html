@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Week 4 — Session Transfer Crisis | MI-EEG Portfolio</title>
+
+
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f4ef;
+    --surface: #ffffff;
+    --border: #e0d9d0;
+    --accent: #1a3a5c;
+    --accent2: #c8692a;
+    --green: #1e6642;
+    --text: #1a1410;
+    --muted: #7a7168;
+    --tag-bg: #eae5dc;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    line-height: 1.75;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 28px, rgba(0,0,0,0.025) 28px, rgba(0,0,0,0.025) 29px);
+    pointer-events: none; z-index: 0;
+  }
+  .container { max-width: 920px; margin: 0 auto; padding: 0 44px; position: relative; z-index: 1; }
+  /* ── NAV ── */
+  .nav {
+    display: flex; gap: 5px; flex-wrap: wrap;
+    padding: 28px 0 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 52px;
+  }
+  .nav a {
+    font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 600;
+    letter-spacing: 1.5px; text-transform: uppercase; text-decoration: none;
+    padding: 5px 12px; border-radius: 2px;
+    border: 1px solid var(--border); color: var(--muted);
+    transition: all 0.2s;
+  }
+  .nav a:hover { border-color: var(--accent); color: var(--accent); }
+  .nav a.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <nav class="nav">
+    <a href="week1.html">W1 · Data</a>
+    <a href="week2.html">W2 · Baseline</a>
+    <a href="week3.html">W3 · Architecture</a>
+    <a href="week4.html" class="active">W4 · Challenges</a>
+    <a href="week5.html">W5 · Pipeline</a>
+    <a href="week6.html">W6 · thinNet</a>
+    <a href="week7.html">W7 · Training</a>
+    <a href="week8.html">W8 · 2-Class</a>
+    <a href="week9.html">W9 · Forensics</a>
+    <a href="week10.html">W10 · 58%</a>
+    <a href="week11.html">W11 · Literature</a>
+    <a href="week12.html">W12 · LSTM</a>
+    <a href="week13.html">W13 · Hybrid</a>
+  </nav>
+
+
+  <header class="header">
+    <div class="chip-row">
+      <span class="chip purple">Week 04</span>
+      <span class="chip red">Critical Failure</span>
+      <span class="chip gray">Non-Stationarity</span>
+    </div>
+    <h1>The <span class="red">"Session Transfer"</span><br>Crisis</h1>
+    <div class="tagline">Why Brain Signals Drift — and How It Breaks Everything</div>
+  </header>
+
+  <!-- Section 1 -->
+  <div class="section">
+    <h2><span class="pill">01</span> The Hypothesis</h2>
+    <p>A robust AI model should generalize to new data it has never seen. In BCI, this means calibrating on one day and expecting it to work on another — the most critical real-world requirement for any practical Brain-Computer Interface.</p>
+
+    <div class="hyp-flow">
+      <div class="hyp-step train">
+        <div class="step-label">Train</div>
+        <div class="step-val">Sessions 1 & 2</div>
+        <div class="step-note">Recorded Day 1</div>
+      </div>
+      <div class="hyp-sep">→</div>
+      <div class="hyp-step test">
+        <div class="step-label">Test</div>
+        <div class="step-val">Session 3</div>
+        <div class="step-note">Recorded on a different day</div>
+      </div>
+    </div>
+
+    <p>This simulates the real scenario: a user calibrates a BCI device on <strong>Monday</strong> and expects it to work on <strong>Tuesday</strong>. If the model can't generalize across sessions, it has zero practical value.</p>
+  </div>
+
+  <!-- Section 2 -->
+  <div class="section">
+    <h2><span class="pill">02</span> The Experiment</h2>
+    <p>The <code>load_mi_data</code> function was used to split files strictly by session filename — no trial-level shuffling allowed, preserving the integrity of the cross-session test.</p>
+
+    <div class="code-block">
+      <div class="code-top"><span>Session Split — Strict Filename Partitioning</span><span class="tag">Python</span></div>
+      <pre><span class="cm"># Strict Session Split — NO trial-level shuffling</span>
+X_train, Y_train = <span class="fn">load_mi_data</span>(
+    data_directory,
+    session_patterns=[<span class="str">'session1'</span>, <span class="str">'session2'</span>]
+)
+X_test, Y_test = <span class="fn">load_mi_data</span>(
+    data_directory,
+    session_patterns=[<span class="str">'session3'</span>]  <span class="cm"># Unseen session</span>
+)</pre>
+    </div>
+  </div>
+
+  <!-- Section 3: Failure -->
+  <div class="section">
+    <h2><span class="pill">03</span> The Failure</h2>
+    <p>The results were stark. The model achieved near-perfect training performance but completely failed on the new session — performing no better than random chance.</p>
+
+    <div class="fail-grid">
+      <div class="fail-card ok">
+        <div class="fail-label">Train Accuracy</div>
+        <div class="fail-num">&gt;90%</div>
+        <div class="fail-note">Sessions 1 & 2 — memorized</div>
+      </div>
+      <div class="fail-card bad">
+        <div class="fail-label">Test Accuracy</div>
+        <div class="fail-num">~16%</div>
+        <div class="fail-note">Session 3 — random chance (6 classes = 16.6%)</div>
+      </div>
+    </div>
+
+    <p>With 6 classes, a random guess yields exactly <strong>16.6%</strong>. The model was performing at pure chance on the new session — meaning it had learned <em>zero transferable knowledge</em>.</p>
+  </div>
+
+  <!-- Section 4: Root cause -->
+  <div class="section">
+    <h2><span class="pill">04</span> Root Cause Analysis: EEG Non-Stationarity</h2>
+    <p>A deep dive into the BCI literature uncovered the root cause. EEG signals are <strong>non-stationary</strong> — their statistical properties change over time due to multiple physical and physiological factors.</p>
+
+    <div class="cause-list">
+      <div class="cause-item">
+        <div class="cause-num">01</div>
+        <div class="cause-body">
+          <h3>Electrode Impedance Changes</h3>
+          <p>The conductivity of the conductive gel changes as it dries between sessions, shifting signal amplitudes and channel characteristics.</p>
+        </div>
+      </div>
+      <div class="cause-item">
+        <div class="cause-num">02</div>
+        <div class="cause-body">
+          <h3>Headset Cap Displacement</h3>
+          <p>Slight shifts in electrode position between donning/doffing the headset change the spatial mapping of EEG channels to brain regions.</p>
+        </div>
+      </div>
+      <div class="cause-item">
+        <div class="cause-num">03</div>
+        <div class="cause-body">
+          <h3>User Fatigue & Cognitive State</h3>
+          <p>The brain produces measurably different signals when tired vs. alert. Session 3 (a different day) represents a completely different cognitive baseline.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hard problem box -->
+  <div class="hard-problem">
+    <h3>The Hard Problem of BCI</h3>
+    <span class="term">Cross-Session Transfer</span>
+    <p>The model had learned the specific "noise fingerprint" of Sessions 1 & 2, but those fingerprints don't exist in Session 3. This is a known hard problem in BCI research. Solving it requires either <strong>domain adaptation</strong> (Phase 3) or <strong>randomized trial splitting</strong> to first establish a learnability baseline — which motivates Week 5's approach.</p>
+  </div>
+
+  <footer class="footer">
+    <span>MI-EEG · Oshada Damutha · University of Peradeniya</span>
+    <div class="footer-nav">
+      <a href="week3.html">← Week 3</a>
+      <a href="week5.html">Week 5 →</a>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>

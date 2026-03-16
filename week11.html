@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Week 11 — Literature Review | MI-EEG Portfolio</title>
+
+
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f4ef;
+    --surface: #ffffff;
+    --border: #e0d9d0;
+    --accent: #1a3a5c;
+    --accent2: #c8692a;
+    --green: #1e6642;
+    --text: #1a1410;
+    --muted: #7a7168;
+    --tag-bg: #eae5dc;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    line-height: 1.75;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 28px, rgba(0,0,0,0.025) 28px, rgba(0,0,0,0.025) 29px);
+    pointer-events: none; z-index: 0;
+  }
+  .container { max-width: 920px; margin: 0 auto; padding: 0 44px; position: relative; z-index: 1; }
+  /* ── NAV ── */
+  .nav {
+    display: flex; gap: 5px; flex-wrap: wrap;
+    padding: 28px 0 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 52px;
+  }
+  .nav a {
+    font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 600;
+    letter-spacing: 1.5px; text-transform: uppercase; text-decoration: none;
+    padding: 5px 12px; border-radius: 2px;
+    border: 1px solid var(--border); color: var(--muted);
+    transition: all 0.2s;
+  }
+  .nav a:hover { border-color: var(--accent); color: var(--accent); }
+  .nav a.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <nav class="nav">
+    <a href="week1.html">W1 · Data</a>
+    <a href="week2.html">W2 · Baseline</a>
+    <a href="week3.html">W3 · Architecture</a>
+    <a href="week4.html">W4 · Challenges</a>
+    <a href="week5.html">W5 · Pipeline</a>
+    <a href="week6.html">W6 · thinNet</a>
+    <a href="week7.html">W7 · Training</a>
+    <a href="week8.html">W8 · 2-Class</a>
+    <a href="week9.html">W9 · Forensics</a>
+    <a href="week10.html">W10 · 58%</a>
+    <a href="week11.html" class="active">W11 · Literature</a>
+    <a href="week12.html">W12 · LSTM</a>
+    <a href="week13.html">W13 · Hybrid</a>
+  </nav>
+
+
+  <header>
+    <div>
+      <div class="issue-label">Week 11 · Phase 3</div>
+      <h1>Deep Learning<br>Methods for<br><em>EEG Decoding</em></h1>
+    </div>
+    <div class="header-meta">
+      <div class="meta-big">86%</div>
+      <div class="meta-label">EEGNet-LSTM<br>Peak Accuracy</div>
+    </div>
+  </header>
+
+  <!-- Section 1 -->
+  <section>
+    <h2>The Research Landscape <span class="h2-num">01</span></h2>
+    <p>To chart a path beyond 58% accuracy, Week 11 pivots from engineering to <strong>literature</strong>. The primary source is a key empirical study: <em>"Empirical Comparison of Deep Learning Methods for EEG Decoding"</em>, which benchmarks two hybrid architectures against the state of the art for Motor Imagery classification in Brain-Machine Interfaces.</p>
+    <p>The central question: can a <strong>hybrid CNN-LSTM architecture</strong> simultaneously extract spatial EEG features (via convolutional layers) and model how those features evolve over time (via recurrent layers)? The answer from this study is a resounding yes.</p>
+
+    <div class="pull-quote">
+      <p>"Performing feature extraction and classification simultaneously within a unified deep learning architecture leads to better performance than separating these processes."</p>
+    </div>
+  </section>
+
+  <!-- Section 2: Two models -->
+  <section>
+    <h2>Two Approaches Compared <span class="h2-num">02</span></h2>
+    <p>The study proposes two architectures for evaluation, representing two philosophies of integrating temporal sequence modeling into EEG classification.</p>
+
+    <div class="model-grid">
+      <div class="model-card lstm">
+        <div class="model-tag">Model A</div>
+        <h3>Standalone LSTM Decoder</h3>
+        <p>Classical two-stage pipeline: feature extraction is <strong>separate</strong>. Wavelet Packet Decomposition (WPD) extracts time-frequency features, then CSP extracts spatial features. These handcrafted features feed into stacked LSTM layers.</p>
+        <p>Includes batch normalization, dropout, and softmax classification. The bottleneck: feature extraction and classification are decoupled.</p>
+        <div class="model-acc">
+          <span class="acc-big">72%</span>
+          <span class="acc-label">Avg Accuracy<br>BCI-IV Dataset</span>
+        </div>
+      </div>
+      <div class="model-card hybrid">
+        <div class="model-tag">Model B — Winner</div>
+        <h3>EEGNet-LSTM Hybrid</h3>
+        <p>End-to-end learning: EEGNet acts as an <strong>automatic</strong> spatial-spectral feature extractor. Its output feature maps are reshaped into a sequence and fed directly into two LSTM layers that model temporal evolution.</p>
+        <p>No hand-engineered features — the network learns what to look for and when it matters simultaneously.</p>
+        <div class="model-acc">
+          <span class="acc-big">86%</span>
+          <span class="acc-label">Avg Accuracy<br>BCI-IV Dataset</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 3: Datasets -->
+  <section>
+    <h2>Experimental Datasets <span class="h2-num">03</span></h2>
+
+    <div class="dataset-row">
+      <div class="dataset-card">
+        <div class="ds-label">Dataset 1</div>
+        <h3>BCI Competition IV — 2a</h3>
+        <ul>
+          <li>9 subjects, 4-class Motor Imagery</li>
+          <li>Tasks: Left hand, Right hand, Feet, Tongue</li>
+          <li>22 EEG channels @ 250 Hz</li>
+          <li>Primary benchmark dataset</li>
+        </ul>
+      </div>
+      <div class="dataset-card">
+        <div class="ds-label">Dataset 2</div>
+        <h3>Physiobank EEG Motor Dataset</h3>
+        <ul>
+          <li>109 subjects, 2-class task</li>
+          <li>Tasks: Left wrist, Right wrist imagery</li>
+          <li>64 EEG channels @ 160 Hz</li>
+          <li>Generalization benchmark</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 4: Results -->
+  <section>
+    <h2>Benchmark Results <span class="h2-num">04</span></h2>
+    <p>Hyperparameter optimization used an automated grid search fixed to one subject, then applied to all. Best config: <strong>Adam optimizer, LR = 0.001, 0.5–100 Hz bandpass</strong>.</p>
+
+    <table class="results-table">
+      <thead>
+        <tr><th>Model / Method</th><th>Avg Accuracy</th><th>Kappa</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>EEGNet-LSTM (Hybrid)</td><td>~86%</td><td>0.81</td><td><span class="badge best">Best</span></td></tr>
+        <tr><td>Standalone LSTM + WPD+CSP</td><td>~72%</td><td>0.63</td><td><span class="badge mid">Baseline</span></td></tr>
+        <tr><td>SCCRNN (Prior Work)</td><td>Lower</td><td>—</td><td>Outperformed</td></tr>
+        <tr><td>Incep-EEGNet (Prior Work)</td><td>Lower</td><td>—</td><td>Outperformed</td></tr>
+        <tr><td>BCI-IV Competition Winner</td><td>—</td><td>~0.58</td><td>+23% Kappa gap</td></tr>
+        <tr><td>EEGNet-LSTM on Physiobank</td><td>~85%</td><td>—</td><td><span class="badge best">vs. 82% EEGNet</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Conclusion -->
+  <div class="conclusion">
+    <div class="c-label">Week 11 Takeaway</div>
+    <h3>The Path Forward: EEGNet-LSTM Integration</h3>
+    <p>The literature confirms the direction for Phase 3: move from a static spatial CNN toward a hybrid architecture that treats extracted EEG features as a temporal sequence. The EEGNet-LSTM architecture achieves a 14 percentage point gain over the standalone LSTM approach, demonstrating the power of simultaneous spatial and temporal learning. Weeks 12–13 will implement this from first principles.</p>
+  </div>
+
+  <footer>
+    <span>MI-EEG · Oshada Damutha · University of Peradeniya</span>
+    <div class="footer-nav">
+      <a href="week10.html">← Week 10</a>
+      <a href="week12.html">Week 12 →</a>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>
